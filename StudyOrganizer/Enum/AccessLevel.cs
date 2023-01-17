@@ -1,4 +1,4 @@
-namespace StudyOrganizer.Enums;
+namespace StudyOrganizer.Enum;
 
 public enum AccessLevel
 {

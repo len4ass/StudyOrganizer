@@ -1,6 +1,6 @@
 namespace StudyOrganizer.Bot;
 
-public class MessageSender
+public static class Messager
 {
     
 }
