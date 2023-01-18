@@ -1,4 +1,6 @@
-﻿namespace StudyOrganizer;
+﻿using System.Runtime.InteropServices;
+
+namespace StudyOrganizer;
 
 internal static class Program
 {
