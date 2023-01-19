@@ -2,7 +2,7 @@ using StudyOrganizer.Models.Deadline;
 
 namespace StudyOrganizer.Repositories.Deadline;
 
-public class DeadlineInfoRepository : IRepository, IDataProvider<DeadlineInfo>, IFindable<string, DeadlineInfo?>
+public class DeadlineInfoRepository : IDeadlineInfoRepository
 {
     private IList<DeadlineInfo> _deadlineData;
 

@@ -6,6 +6,5 @@ public sealed class GeneralSettings
     public long MainChatId { get; init; }
     public long ImportantChatId { get; init; }
     public string? Token { get; init; }
-    public TimeZoneInfo? HostingTimeZoneUtc { get; init; }
     public TimeZoneInfo? ChatTimeZoneUtc { get; init; }
 }

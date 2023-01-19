@@ -37,27 +37,29 @@ public class CommandLoader
         foreach (var file in files)
         {
             var path = file.FullName;
-            var types = AssemblyLoader.GetTypesFromAssembly(path);
-            foreach (var type in types)
+            var type = AssemblyLoader.GetTypeFromAssembly(path);
+            if (type is null)
             {
-                var instance = AssemblyLoader.CreateTypeInstance(
-                    type, 
-                    _masterRepository, 
-                    _generalSettings);
-                
-                if (instance is not BotCommand botCommand)
-                {
-                    continue;
-                }
-
-                var commandInfo = new CommandInfo(
-                    botCommand.Name,
-                    botCommand.Description,
-                    botCommand.AccessLevel);
-                
-                _commandData.Add(commandInfo);
-                _commandImplementations[botCommand.Name] = botCommand;
+                continue;
             }
+            
+            var instance = AssemblyLoader.CreateTypeInstance(
+                type, 
+                _masterRepository, 
+                _generalSettings);
+                
+            if (instance is not BotCommand botCommand)
+            {
+                continue;
+            }
+
+            var commandInfo = new CommandInfo(
+                botCommand.Name,
+                botCommand.Description,
+                botCommand.AccessLevel);
+                
+            _commandData.Add(commandInfo);
+            _commandImplementations[botCommand.Name] = botCommand;
         }
 
         _commandsLoaded = true;

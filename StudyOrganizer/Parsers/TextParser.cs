@@ -14,7 +14,11 @@ public static class TextParser
         var entries = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         
         var atIndex = entries[0].IndexOf('@');
-        entries[0] = entries[0][..atIndex];
+        if (atIndex >= 0)
+        {
+            entries[0] = entries[0][..atIndex];
+        }
+        
         return entries;
     } 
 }

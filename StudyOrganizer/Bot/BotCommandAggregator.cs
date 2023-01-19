@@ -23,7 +23,12 @@ public class BotCommandAggregator
     {
         if (!_commandImplementations.ContainsKey(commandName))
         {
-            return $"Команды /{commandName} не существует, попробуйте заново.";
+            var response = $"Команды /{commandName} не существует, попробуйте заново.";
+            await BotMessager.Reply(
+                client, 
+                message, 
+                response);
+            return response;
         }
 
         return await _commandImplementations[commandName].Execute(

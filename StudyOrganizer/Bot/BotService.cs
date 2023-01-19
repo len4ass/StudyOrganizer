@@ -1,6 +1,9 @@
+using StudyOrganizer.Enum;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Parsers;
 using StudyOrganizer.Repositories;
+using StudyOrganizer.Repositories.Master;
+using StudyOrganizer.Repositories.User;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
@@ -11,12 +14,12 @@ namespace StudyOrganizer.Bot;
 
 public class BotService
 {
-    private readonly IRepository _masterRepository;
+    private readonly IMasterRepository _masterRepository;
     private readonly GeneralSettings _generalSettings;
     private readonly BotCommandAggregator _botCommandAggregator;
 
     public BotService(
-        IRepository masterRepository, 
+        IMasterRepository masterRepository, 
         GeneralSettings generalSettings, 
         BotCommandAggregator botCommandAggregator)
     {
@@ -46,7 +49,9 @@ public class BotService
             PollingErrorHandler, 
             receiverOptions, 
             cancellationToken.Token);
-        
+
+        Console.WriteLine("Поллинг начат! Успешная инициализация.");
+        Console.ReadKey();
         cancellationToken.Cancel();
     }
 
@@ -60,10 +65,9 @@ public class BotService
             return "Не удалось идентифицировать отправителя.";
         }
 
-        var masterRepository = _masterRepository as IFindable<string, IRepository>;
-        var userFinder = masterRepository?.Find("user") as IFindable<long, UserInfo?>;
+        var userFinder = _masterRepository.Find("user") as IUserInfoRepository;
         var user = userFinder?.Find(message.From.Id);
-        if (user is null)
+        if (user is null && message.From.Id != _generalSettings.OwnerId)
         {
             return $"Пользователя {message.From.FirstName} ({message.From.Id}) нет в белом списке.";
         }
@@ -106,6 +110,26 @@ public class BotService
                 return;
             }
 
+            if (update.Message.Chat.Id == _generalSettings.MainChatId 
+                && update.Message.From is not null
+                && !update.Message.From.IsBot)
+            {
+                var userRepository = _masterRepository.Find("user") as IUserInfoRepository;
+                var user = userRepository?.Find(update.Message.From.Id);
+                if (user is null)
+                {
+                    userRepository?.Add(
+                        new UserInfo
+                        {
+                            Id = update.Message.From.Id,
+                            Handle = update.Message.From.Username,
+                            Name = update.Message.From.FirstName,
+                            Level = AccessLevel.Normal,
+                            MsgAmount = 1
+                        });
+                }
+            }
+
             var response = await MessageUpdateHandler(
                 client,
                 update.Message, 
@@ -124,6 +148,6 @@ public class BotService
         Exception exception, 
         CancellationToken cts)
     {
-        // обработка ошибок
+        Console.WriteLine(exception);
     }
 }

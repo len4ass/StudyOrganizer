@@ -4,24 +4,13 @@ namespace StudyOrganizer.Loaders;
 
 public static class AssemblyLoader
 {
-    public static IList<Type> GetTypesFromAssembly(string path)
+    public static Type? GetTypeFromAssembly(string path)
     {
         var properPath = Path.GetFullPath(path);
+        var fileName = Path.GetFileNameWithoutExtension(properPath);
         var assembly = Assembly.LoadFrom(properPath);
         
-        IList<Type> types;
-        try
-        {
-            types = assembly.GetTypes().ToList();
-        }
-        catch (ReflectionTypeLoadException exception)
-        {
-            types = exception.Types
-                .Where(type => type is not null)
-                .ToList()!;
-        }
-
-        return types;
+        return assembly.GetType($"{fileName}.{fileName}");
     }
 
     public static object? CreateTypeInstance(Type type, params object[] constructorParameters)

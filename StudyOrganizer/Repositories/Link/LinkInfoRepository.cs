@@ -2,7 +2,7 @@ using StudyOrganizer.Models.Link;
 
 namespace StudyOrganizer.Repositories.Link;
 
-public class LinkInfoRepository : IRepository, IDataProvider<LinkInfo>, IFindable<string, LinkInfo?>
+public class LinkInfoRepository : ILinkInfoRepository
 {
     private IList<LinkInfo> _linkData;
 

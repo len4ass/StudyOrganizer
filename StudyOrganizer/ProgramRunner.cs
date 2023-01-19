@@ -14,18 +14,9 @@ using StudyOrganizer.Settings;
 namespace StudyOrganizer;
 
 public class ProgramRunner
-{
-    private void ValidateSettings(Settings.GeneralSettings generalSettings)
+{ 
+    private void ValidateSettings(GeneralSettings generalSettings)
     {
-        /*var type = typeof(Settings);
-        var fields = type.GetFields();
-        foreach (var field in fields)
-        {
-            var fieldType = field.GetType();
-            var fieldValue = ()field.GetValue(settings);
-            if (field.GetValue()) 
-        }*/
-        
         if (generalSettings.Token is null)
         {
             throw new ArgumentNullException(
@@ -33,11 +24,11 @@ public class ProgramRunner
                 $"Заполните поле Token в файле settings.json в папке с программой.");
         }
 
-        if (generalSettings.OwnerId == 0)
+        /*if (generalSettings.OwnerId == 0)
         {
             throw new InvalidDataException(
                 "Укажите ID владельца бота (OwnerId) в settings.json в папке с программой.");
-        }
+        }*/
 
         if (generalSettings.MainChatId == 0)
         {
@@ -51,49 +42,50 @@ public class ProgramRunner
                 $"Укажите ID важного чата (ImportantChatId) в settings.json в папке с программой.");
         }
 
-        if (generalSettings.ChatTimeZoneUtc is null)
+        /*if (generalSettings.ChatTimeZoneUtc is null)
         {
             throw new InvalidDataException(
                 "Укажите тайм-зону основного чата (ChatTimeZoneUtc) в settings.json в папке с программой.");
-        }
-
-        if (generalSettings.HostingTimeZoneUtc is null)
-        {
-            throw new InvalidDataException(
-                "Укажите тайм-зону хостинга (HostingTimeZoneUtc) в settings.json в папке с программой.");
-        }
+        }*/
     }
     
     public void Run()
     {
-        
         // Сделать приветственную настройку settings.config и добавить изменение
         ProgramData.AssertSafeFileAccess();
         ProgramData.AssertNonEmptyContent();
 
+        Console.WriteLine("Загрузка настроек...");
         // Подгрузка настроек и данных из файлов
         var settings = ProgramData.LoadFrom<GeneralSettings>(PathContainer.SettingsPath);
+        ValidateSettings(settings);
+        Console.WriteLine("Настройки успешно загружены.");
+
+        Console.WriteLine("Загрузка данных...");
         var deadlineRepository = new DeadlineInfoRepository(
             ProgramData.LoadFrom<IList<DeadlineInfo>>(PathContainer.DeadlinesPath));
         var linkRepository = new LinkInfoRepository(
             ProgramData.LoadFrom<IList<LinkInfo>>(PathContainer.LinksPath));
         var userRepository = new UserInfoRepository(
             ProgramData.LoadFrom<IList<UserInfo>>(PathContainer.UsersPath));
-
-        // Регистрация хэндлеров
         var mainRepository = new MasterRepository();
+        
+        Console.WriteLine("Подготовка загрузчика команд...");
         var commandLoader = new CommandLoader(
             mainRepository, 
             settings, 
-            PathContainer.DataDirectory);
+            PathContainer.CommandsDirectory);
         
         var commandAggregator = new BotCommandAggregator(commandLoader.GetCommandImplementations());
         var commandRepository = new CommandInfoRepository(commandLoader.GetCommandInfoData());
+
+        Console.WriteLine("Данные загружены, подготовка мастер репозитория...");
         mainRepository.Add(new NameRepositoryPair("deadline", deadlineRepository));
         mainRepository.Add(new NameRepositoryPair("link", linkRepository));
         mainRepository.Add(new NameRepositoryPair("user", userRepository));
         mainRepository.Add(new NameRepositoryPair("command", commandRepository));
 
+        Console.WriteLine("Мастер репозиторий подготовлен, запускаем сервис.");
         var botService = new BotService(mainRepository, settings, commandAggregator);
         botService.StartService();
     }

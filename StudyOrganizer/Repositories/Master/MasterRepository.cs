@@ -1,6 +1,6 @@
 namespace StudyOrganizer.Repositories.Master;
 
-public class MasterRepository : IRepository, IDataProvider<NameRepositoryPair>, IFindable<string, IRepository?>
+public class MasterRepository : IMasterRepository
 {
     private readonly IDictionary<string, IRepository> _repositories;
 

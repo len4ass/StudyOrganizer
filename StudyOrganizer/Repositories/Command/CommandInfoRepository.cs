@@ -2,7 +2,7 @@ using StudyOrganizer.Models.Command;
 
 namespace StudyOrganizer.Repositories.Command;
 
-public class CommandInfoRepository : IRepository, IDataProvider<CommandInfo>, IFindable<string, CommandInfo?>
+public class CommandInfoRepository : ICommandInfoRepository
 {
     private IList<CommandInfo> _commandData;
 

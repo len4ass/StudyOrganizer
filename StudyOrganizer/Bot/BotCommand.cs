@@ -1,7 +1,7 @@
 using StudyOrganizer.Enum;
-using StudyOrganizer.Models;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories;
+using StudyOrganizer.Repositories.Master;
+using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -13,10 +13,10 @@ public abstract class BotCommand
     public string Description { get; init; }
     public AccessLevel AccessLevel { get; init; }
     
-    protected readonly IRepository MasterRepository;
-    protected readonly Settings.GeneralSettings GeneralSettings;
+    protected readonly IMasterRepository MasterRepository;
+    protected readonly GeneralSettings GeneralSettings;
 
-    protected BotCommand(IRepository masterRepository, Settings.GeneralSettings generalSettings)
+    protected BotCommand(IMasterRepository masterRepository, GeneralSettings generalSettings)
     {
         Name = "command";
         Description = "No description";

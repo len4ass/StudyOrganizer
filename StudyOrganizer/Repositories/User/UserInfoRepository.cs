@@ -2,7 +2,7 @@ using StudyOrganizer.Models.User;
 
 namespace StudyOrganizer.Repositories.User;
 
-public class UserInfoRepository : IRepository, IDataProvider<UserInfo>, IFindable<long, UserInfo?>
+public class UserInfoRepository : IUserInfoRepository
 {
     private IList<UserInfo> _userData;
 
@@ -13,12 +13,18 @@ public class UserInfoRepository : IRepository, IDataProvider<UserInfo>, IFindabl
 
     public bool Add(UserInfo element)
     {
-        throw new NotImplementedException();
+        if (_userData.Contains(element))
+        {
+            return false;
+        }
+        
+        _userData.Add(element);
+        return true;
     }
 
     public bool Remove(UserInfo element)
     {
-        throw new NotImplementedException();
+        return _userData.Remove(element);
     }
 
     public IReadOnlyList<UserInfo> GetData()

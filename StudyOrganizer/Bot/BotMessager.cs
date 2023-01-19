@@ -14,5 +14,4 @@ public static class BotMessager
             replyToMessageId: message.MessageId,
             parseMode: ParseMode.Html); 
     }
-    
 }
