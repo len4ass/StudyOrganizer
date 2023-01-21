@@ -1,13 +1,13 @@
 ﻿using System.Text;
-using StudyOrganizer.Bot;
 using StudyOrganizer.Enum;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Repositories.Command;
 using StudyOrganizer.Repositories.Master;
+using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using BotCommand = StudyOrganizer.Bot.BotCommand;
+using BotCommand = StudyOrganizer.Services.BotService.BotCommand;
 
 namespace HelpCommand;
 
@@ -21,7 +21,7 @@ public sealed class HelpCommand : BotCommand
         AccessLevel = AccessLevel.Normal;
     }
 
-    public override async Task<string> Execute(
+    public override async Task<string> ExecuteAsync(
         ITelegramBotClient client, 
         Message message, 
         UserInfo userInfo, 
@@ -32,7 +32,7 @@ public sealed class HelpCommand : BotCommand
             return $"Не удалось использовать команду {Name}: у вас недостаточно прав.";
         }
 
-        var response = ParseResponse(arguments);
+        var response = await ParseResponse(arguments);
 
         await BotMessager.Reply(
             client,
@@ -42,10 +42,10 @@ public sealed class HelpCommand : BotCommand
         return response;
     }
 
-    private string FormatAllCommands()
+    private async Task<string> FormatAllCommands()
     {
-        var commandHandler = MasterRepository.Find("command") as ICommandInfoRepository;
-        var commands = commandHandler?.GetData();
+        var commandRepository = MasterRepository.Find("command") as ICommandInfoRepository;
+        var commands = await commandRepository?.GetDataAsync();
         if (commands is null)
         {
             return string.Empty;
@@ -60,10 +60,10 @@ public sealed class HelpCommand : BotCommand
         return sb.ToString();
     }
 
-    private string FormatCommand(string name)
+    private async Task<string> FormatCommand(string name)
     {
         var commandHandler = MasterRepository.Find("command") as ICommandInfoRepository;
-        var command = commandHandler?.Find("help");
+        var command = await commandHandler?.FindAsync("help");
         if (command is null)
         {
             return $"Команды с именем {name} не существует.";
@@ -73,16 +73,16 @@ public sealed class HelpCommand : BotCommand
     }
     
     
-    public string ParseResponse(IList<string> arguments)
+    public async Task<string> ParseResponse(IList<string> arguments)
     {
         if (arguments.Count == 0)
         {
-            return FormatAllCommands();
+            return await FormatAllCommands();
         }
 
         if (arguments.Count == 1)
         {
-            return FormatCommand(arguments[0]);
+            return await FormatCommand(arguments[0]);
         }
 
         return $"Не удалось использовать команду: превышено количество аргументов.";

@@ -1,6 +1,6 @@
 namespace StudyOrganizer.Repositories;
 
-public interface IFindable<in TInput, out TOutput>
+public interface IFindable<in TInput, TOutput>
 {
-    public TOutput Find(TInput element);
+    Task<TOutput> FindAsync(TInput element);
 }

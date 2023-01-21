@@ -2,11 +2,14 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
-namespace StudyOrganizer.Bot;
+namespace StudyOrganizer.Services.BotService;
 
 public static class BotMessager
 {
-    public static async Task<Message> Reply(ITelegramBotClient client, Message message, string response)
+    public static async Task<Message> Reply(
+        ITelegramBotClient client, 
+        Message message, 
+        string response)
     {
         return await client.SendTextMessageAsync(
             message.Chat.Id,

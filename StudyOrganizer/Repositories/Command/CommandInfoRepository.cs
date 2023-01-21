@@ -1,33 +1,40 @@
+using Microsoft.EntityFrameworkCore;
+using StudyOrganizer.Database;
 using StudyOrganizer.Models.Command;
 
 namespace StudyOrganizer.Repositories.Command;
 
 public class CommandInfoRepository : ICommandInfoRepository
 {
-    private IList<CommandInfo> _commandData;
+    private readonly MyDbContext _dbContext;
 
-    public CommandInfoRepository(IList<CommandInfo> commandData)
+    public CommandInfoRepository(MyDbContext dbContext)
     {
-        _commandData = commandData;
+        _dbContext = dbContext;
     }
 
-    public bool Add(CommandInfo data)
+    public Task AddAsync(CommandInfo data)
     {
         throw new NotSupportedException();
     }
 
-    public bool Remove(CommandInfo data)
+    public Task RemoveAsync(CommandInfo data)
     {
         throw new NotSupportedException();
     }
 
-    public IReadOnlyList<CommandInfo> GetData()
+    public Task SaveAsync()
     {
-        return _commandData.ToList().AsReadOnly();
+        throw new NotSupportedException();
     }
 
-    public CommandInfo? Find(string name)
+    public async Task<IReadOnlyList<CommandInfo>> GetDataAsync()
     {
-        return _commandData.FirstOrDefault(command => command.Name == name);
+        return await _dbContext.Commands.ToListAsync();
+    }
+
+    public async Task<CommandInfo?> FindAsync(string name)
+    {
+        return await _dbContext.Commands.FirstOrDefaultAsync(command => command.Name == name);
     }
 }

@@ -1,7 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace StudyOrganizer.Models.Deadline;
 
 public class DeadlineInfo
 {
+    [Key]
     public string Name { get; init; }
     
     public string Description { get; init; }

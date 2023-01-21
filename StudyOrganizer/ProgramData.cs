@@ -1,9 +1,5 @@
 using StudyOrganizer.Helper;
 using StudyOrganizer.Helper.Serializers;
-using StudyOrganizer.Loaders;
-using StudyOrganizer.Models.Deadline;
-using StudyOrganizer.Models.Link;
-using StudyOrganizer.Models.User;
 using StudyOrganizer.Settings;
 
 namespace StudyOrganizer;
@@ -22,8 +18,7 @@ public static class ProgramData
 
         return data;
     }
-    
-    
+
     public static void AssertSafeFileAccess()
     {
         if (!File.Exists(PathContainer.SettingsPath))
@@ -31,48 +26,35 @@ public static class ProgramData
             var handle = File.Create(PathContainer.SettingsPath);
             handle.Close();
         }
-
-        if (!Directory.Exists(PathContainer.DataDirectory))
-        {
-            Directory.CreateDirectory(PathContainer.DataDirectory);
-        }
-
-        if (!File.Exists(PathContainer.DeadlinesPath))
-        {
-            var handle = File.Create(PathContainer.DeadlinesPath);
-            handle.Close();
-        }
-
-        if (!File.Exists(PathContainer.LinksPath))
-        {
-            var handle = File.Create(PathContainer.LinksPath);
-            handle.Close();
-        }
-
-        if (!File.Exists(PathContainer.UsersPath))
-        {
-            var handle = File.Create(PathContainer.UsersPath);
-            handle.Close();
-        }
     }
-
-    private static bool AssertNonEmptyContentForFile<T>(string path, T obj) {
-        var file = new FileHelper(path);
-        if (file.GetFileSize() != 0)
-        {
-            return true;
-        }
-
-        var jsonSerializer = new JsonHelper<T>(path);
-        jsonSerializer.Serialize(obj);
-        return false;
-    }
-
-    public static void AssertNonEmptyContent()
+    
+    public static void ValidateSettings(GeneralSettings generalSettings)
     {
-        AssertNonEmptyContentForFile(PathContainer.SettingsPath, new GeneralSettings());
-        AssertNonEmptyContentForFile(PathContainer.DeadlinesPath, new List<DeadlineInfo>());
-        AssertNonEmptyContentForFile(PathContainer.LinksPath, new List<LinkInfo>());
-        AssertNonEmptyContentForFile(PathContainer.UsersPath, new List<UserInfo>());
+        ArgumentNullException.ThrowIfNull(generalSettings.Token);
+        
+
+        if (generalSettings.OwnerId == 0)
+        {
+            throw new InvalidDataException(
+                "Укажите ID владельца бота (OwnerId) в settings.json в папке с программой.");
+        }
+
+        if (generalSettings.MainChatId == 0)
+        {
+            throw new InvalidDataException(
+                "Укажите ID основного чата (MainChatId) в settings.json в папке с программой.");
+        }
+
+        if (generalSettings.ImportantChatId == 0)
+        {
+            throw new InvalidDataException(
+                $"Укажите ID важного чата (ImportantChatId) в settings.json в папке с программой.");
+        }
+
+        /*if (generalSettings.ChatTimeZoneUtc is null)
+        {
+            throw new InvalidDataException(
+                "Укажите тайм-зону основного чата (ChatTimeZoneUtc) в settings.json в папке с программой.");
+        }*/
     }
 }

@@ -1,6 +1,8 @@
 namespace StudyOrganizer.Repositories.Master;
 
-public interface IMasterRepository : IRepository, IDataProvider<NameRepositoryPair>, IFindable<string, IRepository?>
+public interface IMasterRepository
 {
-    
+    public bool Add(string name, IRepository repository);
+
+    public IRepository? Find(string name);
 }

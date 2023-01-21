@@ -1,9 +1,11 @@
+using System.ComponentModel.DataAnnotations;
 using StudyOrganizer.Enum;
 
 namespace StudyOrganizer.Models.User;
 
 public sealed class UserInfo
 {
+    [Key]
     public long Id { get; init; }
     public string? Name { get; init; }
     public string? Handle { get; init; }

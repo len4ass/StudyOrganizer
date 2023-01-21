@@ -1,39 +1,49 @@
+using Microsoft.EntityFrameworkCore;
+using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
 
 namespace StudyOrganizer.Repositories.User;
 
 public class UserInfoRepository : IUserInfoRepository
 {
-    private IList<UserInfo> _userData;
+    private readonly MyDbContext _dbContext;
 
-    public UserInfoRepository(IList<UserInfo> userData)
+    public UserInfoRepository(MyDbContext dbContext)
     {
-        _userData = userData;
+        _dbContext = dbContext;
+    }
+    
+    public async Task AddAsync(UserInfo element)
+    {
+        await _dbContext.Users.AddAsync(element);
     }
 
-    public bool Add(UserInfo element)
+    public async Task RemoveAsync(UserInfo element)
     {
-        if (_userData.Contains(element))
+        var user = await FindAsync(element.Id);
+        if (user is not null)
         {
-            return false;
+            _dbContext.Users.Remove(user);
         }
-        
-        _userData.Add(element);
-        return true;
     }
 
-    public bool Remove(UserInfo element)
+    public async Task SaveAsync()
     {
-        return _userData.Remove(element);
+        await _dbContext.SaveChangesAsync();
     }
 
-    public IReadOnlyList<UserInfo> GetData()
+    public async Task<IReadOnlyList<UserInfo>> GetDataAsync()
     {
-        return _userData.ToList().AsReadOnly();
+        return await _dbContext.Users.ToListAsync();
     }
 
-    public UserInfo? Find(long id)
+    public async Task<UserInfo?> FindAsync(long id)
     {
-        return _userData.FirstOrDefault(user => user.Id == id);
+        return await _dbContext.Users.FirstOrDefaultAsync(user => user.Id == id);
+    }
+
+    public async Task<UserInfo?> FindAsync(string handle)
+    {
+        return await _dbContext.Users.FirstOrDefaultAsync(user => user.Handle == handle);
     }
 }

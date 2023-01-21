@@ -1,93 +1,93 @@
-using StudyOrganizer.Bot;
+using StudyOrganizer.Database;
 using StudyOrganizer.Loaders;
-using StudyOrganizer.Models.Deadline;
-using StudyOrganizer.Models.Link;
-using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories;
 using StudyOrganizer.Repositories.Command;
 using StudyOrganizer.Repositories.Deadline;
 using StudyOrganizer.Repositories.Link;
 using StudyOrganizer.Repositories.Master;
 using StudyOrganizer.Repositories.User;
+using StudyOrganizer.Services;
+using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Settings;
+using Telegram.Bot;
 
 namespace StudyOrganizer;
 
 public class ProgramRunner
-{ 
-    private void ValidateSettings(GeneralSettings generalSettings)
+{
+    private GeneralSettings _settings = null!;
+    
+    private MyDbContext _dbContext = new MyDbContext();
+    private IMasterRepository _masterRepository = new MasterRepository();
+    
+    private BotCommandAggregator _commandAggregator = null!;
+    private ServiceAggregator _serviceAggregator = null!;
+
+    private ITelegramBotClient _client = null!;
+
+    private void LoadSettings()
     {
-        if (generalSettings.Token is null)
-        {
-            throw new ArgumentNullException(
-                $"Токен не найден. " +
-                $"Заполните поле Token в файле settings.json в папке с программой.");
-        }
+        ProgramData.AssertSafeFileAccess();
+        _settings = ProgramData.LoadFrom<GeneralSettings>(PathContainer.SettingsPath);
+        ProgramData.ValidateSettings(_settings);
+    }
 
-        /*if (generalSettings.OwnerId == 0)
-        {
-            throw new InvalidDataException(
-                "Укажите ID владельца бота (OwnerId) в settings.json в папке с программой.");
-        }*/
+    private void PrepareBot()
+    {
+        _client = new TelegramBotClient(_settings.Token!);
+    }
 
-        if (generalSettings.MainChatId == 0)
-        {
-            throw new InvalidDataException(
-                "Укажите ID основного чата (MainChatId) в settings.json в папке с программой.");
-        }
+    private void LoadCommands()
+    {
+        var commandLoader = new CommandLoader(
+            _masterRepository, 
+            _settings, 
+            PathContainer.CommandsDirectory);
+        
+        _commandAggregator = new BotCommandAggregator(commandLoader.GetCommandImplementations());
+        _dbContext.Commands.AddRange(commandLoader.GetCommandInfoData());
+    }
 
-        if (generalSettings.ImportantChatId == 0)
-        {
-            throw new InvalidDataException(
-                $"Укажите ID важного чата (ImportantChatId) в settings.json в папке с программой.");
-        }
+    private void InjectRepositories()
+    {
+        var commandRepository = new CommandInfoRepository(_dbContext);
+        var deadlineRepository = new DeadlineInfoRepository(_dbContext);
+        var linkRepository = new LinkInfoRepository(_dbContext);
+        var userRepository = new UserInfoRepository(_dbContext);
 
-        /*if (generalSettings.ChatTimeZoneUtc is null)
-        {
-            throw new InvalidDataException(
-                "Укажите тайм-зону основного чата (ChatTimeZoneUtc) в settings.json в папке с программой.");
-        }*/
+        _masterRepository.Add("command", commandRepository);
+        _masterRepository.Add("deadline", deadlineRepository);
+        _masterRepository.Add("link", linkRepository);
+        _masterRepository.Add("user", userRepository);
+    }
+
+    private IDictionary<string, IService> PrepareServices()
+    {
+        IDictionary<string, IService> services = new Dictionary<string, IService>();
+        services.Add("bot", new BotService(
+            _masterRepository, 
+            _settings, 
+            _commandAggregator, 
+            _client));
+
+
+        return services;
+    }
+
+    private void StartServices()
+    {
+        _serviceAggregator = new ServiceAggregator(PrepareServices());
+        _serviceAggregator.StartAll();
+
+        Console.ReadLine();
     }
     
     public void Run()
     {
-        // Сделать приветственную настройку settings.config и добавить изменение
-        ProgramData.AssertSafeFileAccess();
-        ProgramData.AssertNonEmptyContent();
-
-        Console.WriteLine("Загрузка настроек...");
-        // Подгрузка настроек и данных из файлов
-        var settings = ProgramData.LoadFrom<GeneralSettings>(PathContainer.SettingsPath);
-        ValidateSettings(settings);
-        Console.WriteLine("Настройки успешно загружены.");
-
-        Console.WriteLine("Загрузка данных...");
-        var deadlineRepository = new DeadlineInfoRepository(
-            ProgramData.LoadFrom<IList<DeadlineInfo>>(PathContainer.DeadlinesPath));
-        var linkRepository = new LinkInfoRepository(
-            ProgramData.LoadFrom<IList<LinkInfo>>(PathContainer.LinksPath));
-        var userRepository = new UserInfoRepository(
-            ProgramData.LoadFrom<IList<UserInfo>>(PathContainer.UsersPath));
-        var mainRepository = new MasterRepository();
-        
-        Console.WriteLine("Подготовка загрузчика команд...");
-        var commandLoader = new CommandLoader(
-            mainRepository, 
-            settings, 
-            PathContainer.CommandsDirectory);
-        
-        var commandAggregator = new BotCommandAggregator(commandLoader.GetCommandImplementations());
-        var commandRepository = new CommandInfoRepository(commandLoader.GetCommandInfoData());
-
-        Console.WriteLine("Данные загружены, подготовка мастер репозитория...");
-        mainRepository.Add(new NameRepositoryPair("deadline", deadlineRepository));
-        mainRepository.Add(new NameRepositoryPair("link", linkRepository));
-        mainRepository.Add(new NameRepositoryPair("user", userRepository));
-        mainRepository.Add(new NameRepositoryPair("command", commandRepository));
-
-        Console.WriteLine("Мастер репозиторий подготовлен, запускаем сервис.");
-        var botService = new BotService(mainRepository, settings, commandAggregator);
-        botService.StartService();
+        LoadSettings();
+        PrepareBot();
+        LoadCommands();
+        InjectRepositories();
+        StartServices();
     }
 }
 

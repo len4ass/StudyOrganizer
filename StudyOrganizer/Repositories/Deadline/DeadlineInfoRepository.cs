@@ -1,33 +1,44 @@
+using Microsoft.EntityFrameworkCore;
+using StudyOrganizer.Database;
 using StudyOrganizer.Models.Deadline;
 
 namespace StudyOrganizer.Repositories.Deadline;
 
 public class DeadlineInfoRepository : IDeadlineInfoRepository
 {
-    private IList<DeadlineInfo> _deadlineData;
+    private readonly MyDbContext _dbContext;
 
-    public DeadlineInfoRepository(IList<DeadlineInfo> deadlineData)
+    public DeadlineInfoRepository(MyDbContext myDbContext)
     {
-        _deadlineData = deadlineData;
+        _dbContext = myDbContext;
     }
 
-    public bool Add(DeadlineInfo element)
+    public async Task AddAsync(DeadlineInfo element)
     {
-        throw new NotImplementedException();
+        await _dbContext.Deadlines.AddAsync(element);
     }
 
-    public bool Remove(DeadlineInfo element)
+    public async Task RemoveAsync(DeadlineInfo element)
     {
-        throw new NotImplementedException();
+        var deadline = await FindAsync(element.Name);
+        if (deadline is not null)
+        {
+            _dbContext.Deadlines.Remove(deadline);
+        }
     }
 
-    public IReadOnlyList<DeadlineInfo> GetData()
+    public async Task SaveAsync()
     {
-        return _deadlineData.ToList().AsReadOnly();
+        await _dbContext.SaveChangesAsync();
     }
 
-    public DeadlineInfo? Find(string element)
+    public async Task<IReadOnlyList<DeadlineInfo>> GetDataAsync()
     {
-        throw new NotImplementedException();
+        return await _dbContext.Deadlines.ToListAsync();
+    }
+
+    public async Task<DeadlineInfo?> FindAsync(string name)
+    {
+        return await _dbContext.Deadlines.FirstOrDefaultAsync(deadline => deadline.Name == name);
     }
 }

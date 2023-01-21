@@ -1,33 +1,44 @@
+using Microsoft.EntityFrameworkCore;
+using StudyOrganizer.Database;
 using StudyOrganizer.Models.Link;
 
 namespace StudyOrganizer.Repositories.Link;
 
 public class LinkInfoRepository : ILinkInfoRepository
 {
-    private IList<LinkInfo> _linkData;
+    private readonly MyDbContext _dbContext;
 
-    public LinkInfoRepository(IList<LinkInfo> linkData)
+    public LinkInfoRepository(MyDbContext myDbContext)
     {
-        _linkData = linkData;
+        _dbContext = myDbContext;
     }
 
-    public bool Add(LinkInfo element)
+    public async Task AddAsync(LinkInfo element)
     {
-        throw new NotImplementedException();
+        await _dbContext.Links.AddAsync(element);
     }
 
-    public bool Remove(LinkInfo element)
+    public async Task RemoveAsync(LinkInfo element)
     {
-        throw new NotImplementedException();
+        var deadline = await FindAsync(element.Name);
+        if (deadline is not null)
+        {
+            _dbContext.Links.Remove(deadline);
+        }
     }
 
-    public IReadOnlyList<LinkInfo> GetData()
+    public async Task SaveAsync()
     {
-        return _linkData.ToList().AsReadOnly();
+        await _dbContext.SaveChangesAsync();
     }
 
-    public LinkInfo? Find(string element)
+    public async Task<IReadOnlyList<LinkInfo>> GetDataAsync()
     {
-        throw new NotImplementedException();
+        return await _dbContext.Links.ToListAsync();
+    }
+
+    public async Task<LinkInfo?> FindAsync(string name)
+    {
+        return await _dbContext.Links.FirstOrDefaultAsync(link => link.Name == name);
     }
 }

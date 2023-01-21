@@ -1,9 +1,11 @@
+using System.ComponentModel.DataAnnotations;
 using StudyOrganizer.Enum;
 
 namespace StudyOrganizer.Models.Command;
 
 public class CommandInfo
 {
+    [Key]
     public string Name { get; init; }
     public string Description { get; init; }
     public AccessLevel AccessLevel { get; init; }

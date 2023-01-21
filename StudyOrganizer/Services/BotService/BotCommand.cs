@@ -5,7 +5,7 @@ using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
-namespace StudyOrganizer.Bot;
+namespace StudyOrganizer.Services.BotService;
 
 public abstract class BotCommand
 {
@@ -25,7 +25,7 @@ public abstract class BotCommand
         GeneralSettings = generalSettings;
     }
 
-    public abstract Task<string> Execute(
+    public abstract Task<string> ExecuteAsync(
         ITelegramBotClient client,
         Message message,
         UserInfo userInfo,

@@ -1,6 +1,6 @@
-using StudyOrganizer.Bot;
 using StudyOrganizer.Models.Command;
-using StudyOrganizer.Repositories;
+using StudyOrganizer.Repositories.Master;
+using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Settings;
 
 namespace StudyOrganizer.Loaders;
@@ -11,14 +11,14 @@ public class CommandLoader
     
     private readonly string _path;
     
-    private readonly IRepository _masterRepository;
+    private readonly IMasterRepository _masterRepository;
     private readonly GeneralSettings _generalSettings;
     
     private readonly IList<CommandInfo> _commandData = new List<CommandInfo>();
     private readonly IDictionary<string, BotCommand> _commandImplementations 
         = new Dictionary<string, BotCommand>(); 
 
-    public CommandLoader(IRepository masterRepository, GeneralSettings generalSettings, string path)
+    public CommandLoader(IMasterRepository masterRepository, GeneralSettings generalSettings, string path)
     {
         _masterRepository = masterRepository;
         _generalSettings = generalSettings;

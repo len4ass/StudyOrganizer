@@ -2,9 +2,9 @@ namespace StudyOrganizer.Repositories;
 
 public interface IDataProvider<T>
 {
-    public bool Add(T data);
+    Task AddAsync(T data);
 
-    public bool Remove(T data);
+    Task RemoveAsync(T data);
 
-    public IReadOnlyList<T> GetData();
+    Task<IReadOnlyList<T>> GetDataAsync();
 }

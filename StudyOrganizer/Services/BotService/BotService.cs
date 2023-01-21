@@ -1,7 +1,7 @@
+using StudyOrganizer.Bot;
 using StudyOrganizer.Enum;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Parsers;
-using StudyOrganizer.Repositories;
 using StudyOrganizer.Repositories.Master;
 using StudyOrganizer.Repositories.User;
 using StudyOrganizer.Settings;
@@ -10,49 +10,38 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
-namespace StudyOrganizer.Bot;
+namespace StudyOrganizer.Services.BotService;
 
-public class BotService
+public class BotService : IService
 {
     private readonly IMasterRepository _masterRepository;
     private readonly GeneralSettings _generalSettings;
     private readonly BotCommandAggregator _botCommandAggregator;
+    private readonly ITelegramBotClient _client;
 
     public BotService(
         IMasterRepository masterRepository, 
         GeneralSettings generalSettings, 
-        BotCommandAggregator botCommandAggregator)
+        BotCommandAggregator botCommandAggregator,
+        ITelegramBotClient client)
     {
         _masterRepository = masterRepository;
         _generalSettings = generalSettings;
         _botCommandAggregator = botCommandAggregator;
+        _client = client;
     }
 
-    public void StartService()
+    public void Start()
     {
-        if (_generalSettings.Token is null)
-        {
-            throw new ArgumentNullException(
-                $"Токен не найден. " +
-                $"Заполните поле Token в файле settings.json в папке с программой.");
-        }
-
-        var client = new TelegramBotClient(_generalSettings.Token!);
-        using var cancellationToken = new CancellationTokenSource();
         var receiverOptions = new ReceiverOptions
         {
             AllowedUpdates = { }
         };
         
-        client.StartReceiving(
+        _client.StartReceiving(
             PollingUpdateHandler, 
             PollingErrorHandler, 
-            receiverOptions, 
-            cancellationToken.Token);
-
-        Console.WriteLine("Поллинг начат! Успешная инициализация.");
-        Console.ReadKey();
-        cancellationToken.Cancel();
+            receiverOptions);
     }
 
     private async Task<string> MessageUpdateHandler(
@@ -66,7 +55,7 @@ public class BotService
         }
 
         var userFinder = _masterRepository.Find("user") as IUserInfoRepository;
-        var user = userFinder?.Find(message.From.Id);
+        var user = await userFinder?.FindAsync(message.From.Id)!;
         if (user is null && message.From.Id != _generalSettings.OwnerId)
         {
             return $"Пользователя {message.From.FirstName} ({message.From.Id}) нет в белом списке.";
@@ -89,7 +78,7 @@ public class BotService
             return $"Сообщение от пользователя {user.Name} ({user.Id}) не содержит команду.";
         }
 
-        return await _botCommandAggregator.ExecuteCommandByName(
+        return await _botCommandAggregator.ExecuteCommandByNameAsync(
             args[0],
             client,
             message,
@@ -115,10 +104,10 @@ public class BotService
                 && !update.Message.From.IsBot)
             {
                 var userRepository = _masterRepository.Find("user") as IUserInfoRepository;
-                var user = userRepository?.Find(update.Message.From.Id);
+                var user = await userRepository?.FindAsync(update.Message.From.Id)!;
                 if (user is null)
                 {
-                    userRepository?.Add(
+                    await userRepository.AddAsync(
                         new UserInfo
                         {
                             Id = update.Message.From.Id,
@@ -127,6 +116,8 @@ public class BotService
                             Level = AccessLevel.Normal,
                             MsgAmount = 1
                         });
+                    
+                    await userRepository.SaveAsync();
                 }
             }
 
