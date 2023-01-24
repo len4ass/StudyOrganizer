@@ -49,7 +49,7 @@ public static class AssemblyLoader
     {
         if (instance is null)
         {
-            throw new ArgumentNullException($"Объект, у которого вы хотите получить поле - null");
+            throw new ArgumentNullException(nameof(instance), "Переданный объект null.");
         }
 
         var fields = instance.GetType().GetFields(BindingFlags.Public | 

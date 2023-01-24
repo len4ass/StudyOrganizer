@@ -11,7 +11,7 @@ public class ServiceAggregator
 
     public void StartAll()
     {
-        foreach (var (name, service) in _services)
+        foreach (var (_, service) in _services)
         {
             service.Start();
         }

@@ -45,11 +45,7 @@ public sealed class HelpCommand : BotCommand
     private async Task<string> FormatAllCommands()
     {
         var commandRepository = MasterRepository.Find("command") as ICommandInfoRepository;
-        var commands = await commandRepository?.GetDataAsync();
-        if (commands is null)
-        {
-            return string.Empty;
-        }
+        var commands = await commandRepository?.GetDataAsync()!;
 
         var sb = new StringBuilder("Список всех команд: \n \n");
         for (int i = 0; i < commands.Count; i++)
@@ -63,7 +59,7 @@ public sealed class HelpCommand : BotCommand
     private async Task<string> FormatCommand(string name)
     {
         var commandHandler = MasterRepository.Find("command") as ICommandInfoRepository;
-        var command = await commandHandler?.FindAsync("help");
+        var command = await commandHandler?.FindAsync(name)!;
         if (command is null)
         {
             return $"Команды с именем {name} не существует.";

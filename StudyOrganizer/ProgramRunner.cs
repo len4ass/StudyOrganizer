@@ -1,4 +1,7 @@
+using Serilog;
+using Serilog.Core;
 using StudyOrganizer.Database;
+using StudyOrganizer.Hooks;
 using StudyOrganizer.Loaders;
 using StudyOrganizer.Repositories.Command;
 using StudyOrganizer.Repositories.Deadline;
@@ -24,6 +27,14 @@ public class ProgramRunner
 
     private ITelegramBotClient _client = null!;
 
+    private void InitializeLogger()
+    {
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            .WriteTo.File("logs/logs.txt", rollingInterval: RollingInterval.Day)
+            .CreateLogger();
+    }
+    
     private void LoadSettings()
     {
         ProgramData.AssertSafeFileAccess();
@@ -80,13 +91,37 @@ public class ProgramRunner
 
         Console.ReadLine();
     }
-    
+
+    private void InitializeExitHooks()
+    {
+        EventHook.AddMethodOnProcessExit((_, _) =>
+        {
+            Log.Logger.Information("Завершение работы.");
+            var readOnlyList = (_masterRepository.Find("command") as ICommandInfoRepository)?.GetDataAsync().Result;
+            if (readOnlyList is not null)
+            {
+                _dbContext.Commands.RemoveRange(readOnlyList);
+            }
+        });
+    }
+
+    private void CatchUnhandledExceptions()
+    {
+        EventHook.AddMethodOnUnhandledException((o, args) =>
+        {
+            Log.Logger.Error(args.ExceptionObject as Exception, "Необработанное исключение!");
+        });
+    }
+
     public void Run()
     {
+        InitializeLogger();
         LoadSettings();
         PrepareBot();
         LoadCommands();
         InjectRepositories();
+        InitializeExitHooks();
+        CatchUnhandledExceptions();
         StartServices();
     }
 }

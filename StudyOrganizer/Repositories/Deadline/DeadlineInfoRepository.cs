@@ -39,6 +39,6 @@ public class DeadlineInfoRepository : IDeadlineInfoRepository
 
     public async Task<DeadlineInfo?> FindAsync(string name)
     {
-        return await _dbContext.Deadlines.FirstOrDefaultAsync(deadline => deadline.Name == name);
+        return await _dbContext.Deadlines.FindAsync(name);
     }
 }

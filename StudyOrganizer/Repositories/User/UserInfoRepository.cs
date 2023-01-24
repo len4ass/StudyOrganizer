@@ -39,11 +39,12 @@ public class UserInfoRepository : IUserInfoRepository
 
     public async Task<UserInfo?> FindAsync(long id)
     {
-        return await _dbContext.Users.FirstOrDefaultAsync(user => user.Id == id);
+        return await _dbContext.Users.FindAsync(id);
     }
 
     public async Task<UserInfo?> FindAsync(string handle)
     {
-        return await _dbContext.Users.FirstOrDefaultAsync(user => user.Handle == handle);
+        var users = await GetDataAsync();
+        return users.FirstOrDefault(user => user.Handle == handle);
     }
 }

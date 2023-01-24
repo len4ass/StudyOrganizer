@@ -35,6 +35,6 @@ public class CommandInfoRepository : ICommandInfoRepository
 
     public async Task<CommandInfo?> FindAsync(string name)
     {
-        return await _dbContext.Commands.FirstOrDefaultAsync(command => command.Name == name);
+        return await _dbContext.Commands.FindAsync(name);
     }
 }

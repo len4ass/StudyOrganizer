@@ -39,6 +39,6 @@ public class LinkInfoRepository : ILinkInfoRepository
 
     public async Task<LinkInfo?> FindAsync(string name)
     {
-        return await _dbContext.Links.FirstOrDefaultAsync(link => link.Name == name);
+        return await _dbContext.Links.FindAsync(name);
     }
 }

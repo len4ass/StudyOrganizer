@@ -1,4 +1,4 @@
-using StudyOrganizer.Bot;
+using Serilog;
 using StudyOrganizer.Enum;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Parsers;
@@ -18,7 +18,7 @@ public class BotService : IService
     private readonly GeneralSettings _generalSettings;
     private readonly BotCommandAggregator _botCommandAggregator;
     private readonly ITelegramBotClient _client;
-
+    
     public BotService(
         IMasterRepository masterRepository, 
         GeneralSettings generalSettings, 
@@ -56,12 +56,12 @@ public class BotService : IService
 
         var userFinder = _masterRepository.Find("user") as IUserInfoRepository;
         var user = await userFinder?.FindAsync(message.From.Id)!;
-        if (user is null && message.From.Id != _generalSettings.OwnerId)
+        if (user is null) 
         {
             return $"Пользователя {message.From.FirstName} ({message.From.Id}) нет в белом списке.";
         }
 
-        if (message.Chat.Id != user.Id && message.Chat.Id != _generalSettings.MainChatId)
+        if (message.Chat.Id != message.From.Id && message.Chat.Id != _generalSettings.MainChatId)
         {
             return
                 $"Сообщение пользователя {user.Name} ({user.Id}) получено не из основного чата/личных сообщений.";
@@ -94,8 +94,7 @@ public class BotService : IService
         if (update.Type == UpdateType.Message)
         {
             if (update.Message is null)
-            {
-                // произошла внутренняя ошибка
+            { 
                 return;
             }
 
@@ -125,9 +124,7 @@ public class BotService : IService
                 client,
                 update.Message, 
                 cts);
-            
-            // to-do proper logging
-            Console.WriteLine(response);
+            Log.Logger.Information(response);
         }
         
         
@@ -139,6 +136,6 @@ public class BotService : IService
         Exception exception, 
         CancellationToken cts)
     {
-        Console.WriteLine(exception);
+        Log.Logger.Error(exception, "Поймано исключение во время обработки запроса!");
     }
 }
