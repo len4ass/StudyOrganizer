@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using StudyOrganizer.Enum;
+using StudyOrganizer.Models.User;
 
 namespace StudyOrganizer.Models.Command;
 

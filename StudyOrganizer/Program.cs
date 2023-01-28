@@ -2,9 +2,9 @@
 
 internal static class Program
 {
-    public static void Main()
+    public static async Task Main()
     {
         var runner = new ProgramRunner();
-        runner.Run();
+        await runner.Run();
     }
 }

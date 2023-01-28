@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using StudyOrganizer.Enum;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Repositories.Command;
 using StudyOrganizer.Repositories.Master;
@@ -21,27 +20,75 @@ public sealed class HelpCommand : BotCommand
         AccessLevel = AccessLevel.Normal;
     }
 
-    public override async Task<string> ExecuteAsync(
+    public override async Task<BotResponse> ExecuteAsync(
         ITelegramBotClient client, 
         Message message, 
         UserInfo userInfo, 
         IList<string> arguments)
     {
-        if (userInfo.Level < AccessLevel)
-        {
-            return $"Не удалось использовать команду {Name}: у вас недостаточно прав.";
-        }
-
-        var response = await ParseResponse(arguments);
+        var response = await ParseResponse(userInfo, arguments);
 
         await BotMessager.Reply(
             client,
             message,
-            response);
+            response.UserResponse);
 
         return response;
     }
 
+    private async Task<BotResponse> ParseResponse(UserInfo userInfo, IList<string> arguments)
+    {
+        if (userInfo.Level < AccessLevel)
+        {
+            return new BotResponse
+            {
+                UserResponse = string.Format(Responses.AccessDenied, Name),
+                InternalResponse = string.Format(
+                    InternalResponses.AccessDenied,
+                    userInfo.Handle, 
+                    userInfo.Id, 
+                    Name)
+            };
+        }
+        
+        if (arguments.Count == 0)
+        {
+            var userResponse = await FormatAllCommands();
+            return new BotResponse
+            {
+                UserResponse = userResponse,
+                InternalResponse = string.Format(
+                    InternalResponses.Success, 
+                    userInfo.Handle, 
+                    userInfo.Id, 
+                    Name)
+            };
+        }
+
+        if (arguments.Count == 1)
+        {
+            var userResponse = await FormatCommand(arguments[0]);
+            return new BotResponse
+            {
+                UserResponse = userResponse,
+                InternalResponse = string.Format(
+                    InternalResponses.Success, 
+                    userInfo.Handle, 
+                    userInfo.Id, 
+                    Name)
+            };
+        }
+
+        return new BotResponse
+        {
+            UserResponse = string.Format(Responses.ArgumentLimitExceeded, Name),
+            InternalResponse = string.Format(InternalResponses.BadRequest, 
+                userInfo.Handle, 
+                userInfo.Id, 
+                Name)
+        };
+    }
+    
     private async Task<string> FormatAllCommands()
     {
         var commandRepository = MasterRepository.Find("command") as ICommandInfoRepository;
@@ -66,21 +113,5 @@ public sealed class HelpCommand : BotCommand
         }
 
         return $"Информация о команде {command.Name}: \n{command.Description}";
-    }
-    
-    
-    public async Task<string> ParseResponse(IList<string> arguments)
-    {
-        if (arguments.Count == 0)
-        {
-            return await FormatAllCommands();
-        }
-
-        if (arguments.Count == 1)
-        {
-            return await FormatCommand(arguments[0]);
-        }
-
-        return $"Не удалось использовать команду: превышено количество аргументов.";
     }
 }

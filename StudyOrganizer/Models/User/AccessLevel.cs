@@ -1,4 +1,4 @@
-namespace StudyOrganizer.Enum;
+namespace StudyOrganizer.Models.User;
 
 public enum AccessLevel
 {

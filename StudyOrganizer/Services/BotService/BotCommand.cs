@@ -1,4 +1,3 @@
-using StudyOrganizer.Enum;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Repositories.Master;
 using StudyOrganizer.Settings;
@@ -25,7 +24,7 @@ public abstract class BotCommand
         GeneralSettings = generalSettings;
     }
 
-    public abstract Task<string> ExecuteAsync(
+    public abstract Task<BotResponse> ExecuteAsync(
         ITelegramBotClient client,
         Message message,
         UserInfo userInfo,

@@ -1,3 +1,5 @@
+using StudyOrganizer.Services.BotService;
+
 namespace StudyOrganizer.Services;
 
 public class ServiceAggregator
@@ -9,11 +11,11 @@ public class ServiceAggregator
         _services = services;
     }
 
-    public void StartAll()
+    public async Task StartAll()
     {
         foreach (var (_, service) in _services)
         {
-            service.Start();
+            await service.StartAsync(new CancellationToken());
         }
     }
 }

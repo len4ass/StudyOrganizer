@@ -1,5 +1,4 @@
 using Serilog;
-using Serilog.Core;
 using StudyOrganizer.Database;
 using StudyOrganizer.Hooks;
 using StudyOrganizer.Loaders;
@@ -84,10 +83,10 @@ public class ProgramRunner
         return services;
     }
 
-    private void StartServices()
+    private async Task StartServices()
     {
         _serviceAggregator = new ServiceAggregator(PrepareServices());
-        _serviceAggregator.StartAll();
+        await _serviceAggregator.StartAll();
 
         Console.ReadLine();
     }
@@ -107,13 +106,13 @@ public class ProgramRunner
 
     private void CatchUnhandledExceptions()
     {
-        EventHook.AddMethodOnUnhandledException((o, args) =>
+        EventHook.AddMethodOnUnhandledException((_, args) =>
         {
             Log.Logger.Error(args.ExceptionObject as Exception, "Необработанное исключение!");
         });
     }
 
-    public void Run()
+    public async Task Run()
     {
         InitializeLogger();
         LoadSettings();
@@ -122,7 +121,7 @@ public class ProgramRunner
         InjectRepositories();
         InitializeExitHooks();
         CatchUnhandledExceptions();
-        StartServices();
+        await StartServices();
     }
 }
 

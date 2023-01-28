@@ -1,4 +1,3 @@
-using StudyOrganizer.Bot;
 using StudyOrganizer.Models.User;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -15,7 +14,7 @@ public class BotCommandAggregator
         _commands = commands;
     }
 
-    public async Task<string> ExecuteCommandByNameAsync(
+    public async Task<BotResponse> ExecuteCommandByNameAsync(
         string commandName,
         ITelegramBotClient client,
         Message message,
@@ -24,12 +23,21 @@ public class BotCommandAggregator
     {
         if (!_commands.ContainsKey(commandName))
         {
-            var response = $"Команды /{commandName} не существует, попробуйте заново.";
+            var response = string.Format(Responses.CommandDoesNotExist, commandName);
             await BotMessager.Reply(
                 client, 
                 message, 
                 response);
-            return response;
+            
+            return new BotResponse
+            {
+                UserResponse = response,
+                InternalResponse = string.Format(
+                    InternalResponses.CommandDoesNotExist, 
+                    userInfo.Handle, 
+                    userInfo.Id, 
+                    commandName)
+            };
         }
 
         return await _commands[commandName].ExecuteAsync(

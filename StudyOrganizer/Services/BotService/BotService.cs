@@ -1,5 +1,4 @@
 using Serilog;
-using StudyOrganizer.Enum;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Parsers;
 using StudyOrganizer.Repositories.Master;
@@ -31,51 +30,72 @@ public class BotService : IService
         _client = client;
     }
 
-    public void Start()
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         var receiverOptions = new ReceiverOptions
         {
-            AllowedUpdates = { }
+            AllowedUpdates = new[] {UpdateType.Message}
         };
-        
-        _client.StartReceiving(
-            PollingUpdateHandler, 
-            PollingErrorHandler, 
-            receiverOptions);
-    }
 
-    private async Task<string> MessageUpdateHandler(
+        var bot = await _client.GetMeAsync(cancellationToken);
+        Log.Logger.Information($"Бот {bot.Username} ({bot.Id}) успешно начал поллинг.");
+        StartReceiving(receiverOptions, cancellationToken);
+    }
+    
+    private void StartReceiving(ReceiverOptions receiverOptions, CancellationToken cancellationToken)
+    {
+        var queuedReceiver = new QueuedUpdateReceiver(_client, receiverOptions, PollingErrorHandler);
+        Task.Run(async () =>
+        {
+            await foreach (var update in queuedReceiver)
+            {
+                try
+                {
+                    await PollingUpdateHandler(_client, update, cancellationToken);
+                }
+                catch (Exception exсeption)
+                {
+                    Log.Logger.Error(exсeption, "Поймано исключение во время обработки запроса!");
+                }
+            }
+        }, cancellationToken).ConfigureAwait(false);
+    }
+    
+    private async Task<BotResponse> MessageUpdateHandler(
         ITelegramBotClient client,
         Message message,
         CancellationToken cts)
     {
         if (message.From is null)
         {
-            return "Не удалось идентифицировать отправителя.";
+            return new BotResponse {InternalResponse = "Не удалось идентифицировать отправителя"};
         }
 
         var userFinder = _masterRepository.Find("user") as IUserInfoRepository;
         var user = await userFinder?.FindAsync(message.From.Id)!;
         if (user is null) 
         {
-            return $"Пользователя {message.From.FirstName} ({message.From.Id}) нет в белом списке.";
+            return new BotResponse {InternalResponse = 
+                $"Пользователя {message.From.FirstName} ({message.From.Id}) нет в белом списке."};
         }
 
         if (message.Chat.Id != message.From.Id && message.Chat.Id != _generalSettings.MainChatId)
         {
-            return
-                $"Сообщение пользователя {user.Name} ({user.Id}) получено не из основного чата/личных сообщений.";
+            return new BotResponse {InternalResponse = 
+                $"Сообщение пользователя {user.Name} ({user.Id}) получено не из основного чата/личных сообщений."};
         }
 
         if (message.Text is null)
         {
-            return $"Сообщение от пользователя {user.Name} ({user.Id}) невозможно обработать.";
+            return new BotResponse {InternalResponse = 
+                $"Сообщение от пользователя {user.Name} ({user.Id}) невозможно обработать."};
         }
 
         var args = TextParser.ParseMessageToCommand(message.Text);
         if (args.Count == 0)
         {
-            return $"Сообщение от пользователя {user.Name} ({user.Id}) не содержит команду.";
+            return new BotResponse {InternalResponse = 
+                $"Сообщение от пользователя {user.Name} ({user.Id}) не содержит команду."};
         }
 
         return await _botCommandAggregator.ExecuteCommandByNameAsync(
@@ -91,51 +111,46 @@ public class BotService : IService
         Update update, 
         CancellationToken cts)
     {
-        if (update.Type == UpdateType.Message)
+        if (update.Type != UpdateType.Message || update.Message is null)
         {
-            if (update.Message is null)
-            { 
-                return;
-            }
-
-            if (update.Message.Chat.Id == _generalSettings.MainChatId 
-                && update.Message.From is not null
-                && !update.Message.From.IsBot)
-            {
-                var userRepository = _masterRepository.Find("user") as IUserInfoRepository;
-                var user = await userRepository?.FindAsync(update.Message.From.Id)!;
-                if (user is null)
-                {
-                    await userRepository.AddAsync(
-                        new UserInfo
-                        {
-                            Id = update.Message.From.Id,
-                            Handle = update.Message.From.Username,
-                            Name = update.Message.From.FirstName,
-                            Level = AccessLevel.Normal,
-                            MsgAmount = 1
-                        });
-                    
-                    await userRepository.SaveAsync();
-                }
-            }
-
-            var response = await MessageUpdateHandler(
-                client,
-                update.Message, 
-                cts);
-            Log.Logger.Information(response);
+            return;
         }
         
-        
-        // асинхронно работаем с обновлениями и выбираем более конкретный обработчик для каждого типа
+        if (update.Message.Chat.Id == _generalSettings.MainChatId 
+            && update.Message.From is not null
+            && !update.Message.From.IsBot)
+        {
+            var userRepository = _masterRepository.Find("user") as IUserInfoRepository;
+            var user = await userRepository?.FindAsync(update.Message.From.Id)!;
+            if (user is null)
+            {
+                var newUser = new UserInfo
+                {
+                    Id = update.Message.From.Id,
+                    Handle = update.Message.From.Username,
+                    Name = update.Message.From.FirstName,
+                    Level = AccessLevel.Normal,
+                    MsgAmount = 1
+                };
+
+                await userRepository.AddAsync(newUser);
+                await userRepository.SaveAsync();
+                Log.Logger.Information(
+                    $"Пользователь {newUser.Handle} ({newUser.Id}) добавлен в белый список.");
+            }
+        }
+
+        var response = await MessageUpdateHandler(
+            client,
+            update.Message, 
+            cts);
+        Log.Logger.Information(response.InternalResponse);
     }
     
-    private async Task PollingErrorHandler(
-        ITelegramBotClient client, 
+    private Task PollingErrorHandler(
         Exception exception, 
         CancellationToken cts)
     {
-        Log.Logger.Error(exception, "Поймано исключение во время обработки запроса!");
+        return Task.CompletedTask;
     }
 }
