@@ -9,6 +9,8 @@ using StudyOrganizer.Repositories.Master;
 using StudyOrganizer.Repositories.User;
 using StudyOrganizer.Services;
 using StudyOrganizer.Services.BotService;
+using StudyOrganizer.Services.TriggerService;
+using StudyOrganizer.Services.TriggerService.Jobs;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 
@@ -54,7 +56,30 @@ public class ProgramRunner
             PathContainer.CommandsDirectory);
         
         _commandAggregator = new BotCommandAggregator(commandLoader.GetCommandImplementations());
-        _dbContext.Commands.AddRange(commandLoader.GetCommandInfoData());
+        var commandsInfo = commandLoader.GetCommandInfoData();
+        if (!_dbContext.Commands.Any())
+        {
+            _dbContext.Commands.AddRange(commandsInfo);
+            _dbContext.SaveChanges();
+            return;
+        }
+
+        var commands = _dbContext.Commands.ToList();
+        foreach (var command in commands)
+        {
+            if (!commandsInfo.Contains(command))
+            {
+                _dbContext.Commands.Remove(command);
+                _dbContext.SaveChanges();
+            }
+            else
+            {
+                _dbContext.Commands.Remove(command);
+                _dbContext.SaveChanges();
+                _dbContext.Commands.Add(command);
+                _dbContext.SaveChanges();
+            }
+        }
     }
 
     private void InjectRepositories()
@@ -78,15 +103,24 @@ public class ProgramRunner
             _settings, 
             _commandAggregator, 
             _client));
+        services.Add("trigger", new TriggerService(PrepareCrons()));
 
 
         return services;
+    }
+
+    private IDictionary<string, IJob> PrepareCrons()
+    {
+        IDictionary<string, IJob> crons = new Dictionary<string, IJob>();
+        crons.Add("test", new CustomJob(new TestTrigger(_masterRepository, _client, _settings)));
+        return crons;
     }
 
     private async Task StartServices()
     {
         _serviceAggregator = new ServiceAggregator(PrepareServices());
         await _serviceAggregator.StartAll();
+        
 
         Console.ReadLine();
     }

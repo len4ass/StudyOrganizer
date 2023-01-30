@@ -34,7 +34,7 @@ public class BotService : IService
     {
         var receiverOptions = new ReceiverOptions
         {
-            AllowedUpdates = new[] {UpdateType.Message}
+            AllowedUpdates = Array.Empty<UpdateType>()
         };
 
         var bot = await _client.GetMeAsync(cancellationToken);
