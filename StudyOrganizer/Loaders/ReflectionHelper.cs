@@ -220,6 +220,11 @@ public static class ReflectionHelper
             {
                 continue;
             }
+
+            if (field.GetType() != fieldInTarget.GetType())
+            {
+                continue;
+            }
             
             var previousValue = GetFieldValue(target, field.Name);
             var newValue = GetFieldValue(source, field.Name);
@@ -247,6 +252,11 @@ public static class ReflectionHelper
             }
 
             if (propertyInTarget is null)
+            {
+                continue;
+            }
+
+            if (property.GetType() != propertyInTarget.GetType())
             {
                 continue;
             }
