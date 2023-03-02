@@ -6,7 +6,10 @@ namespace StudyOrganizer.Services.BotService;
 
 public static class BotMessager
 {
-    public static async Task<Message> Send(ITelegramBotClient client, long id, string message)
+    public static async Task<Message> Send(
+        ITelegramBotClient client, 
+        long id, 
+        string message)
     {
         return await client.SendTextMessageAsync(
             id, 

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Repositories.Master;
 using StudyOrganizer.Services.BotService;
@@ -7,25 +8,27 @@ using Telegram.Bot.Types;
 
 namespace StudyOrganizer.Services.TriggerService;
 
-public abstract class CronTrigger
+public abstract class SimpleTrigger
 {
     public string Name { get; init; }
     public string Description { get; init; }
-    
-    public int Hour { get; init; }
-    public int Minute { get; init; }
-    public int Second { get; init; }
-    public int RunEveryGivenSeconds { get; init; }
-
+    public int Hour { get; set; }
+    public int Minute { get; set; }
+    public int Second { get; set; }
+    public int RunEveryGivenSeconds { get; set; }
+    public bool ShouldRun { get; set; }
     protected readonly IMasterRepository MasterRepository;
     protected readonly GeneralSettings GeneralSettings;
     protected readonly ITelegramBotClient Client;
 
-    protected CronTrigger(IMasterRepository masterRepository, 
-        ITelegramBotClient client, GeneralSettings generalSettings)
+    protected SimpleTrigger(
+        IMasterRepository masterRepository, 
+        ITelegramBotClient client, 
+        GeneralSettings generalSettings)
     {
         Name = "trigger";
         Description = "No description";
+        ShouldRun = true;
         MasterRepository = masterRepository;
         Client = client;
         GeneralSettings = generalSettings;

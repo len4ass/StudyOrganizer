@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.Command;
 
-namespace StudyOrganizer.Repositories.Command;
+namespace StudyOrganizer.Repositories.BotCommand;
 
 public class CommandInfoRepository : ICommandInfoRepository
 {

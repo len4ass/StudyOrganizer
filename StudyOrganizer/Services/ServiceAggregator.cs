@@ -1,10 +1,8 @@
-using StudyOrganizer.Services.BotService;
-
 namespace StudyOrganizer.Services;
 
 public class ServiceAggregator
 {
-    private IDictionary<string, IService> _services;
+    private readonly IDictionary<string, IService> _services;
     
     public ServiceAggregator(IDictionary<string, IService> services)
     {
@@ -15,7 +13,7 @@ public class ServiceAggregator
     {
         foreach (var (_, service) in _services)
         {
-            await service.StartAsync(new CancellationToken());
+            await service.StartAsync(GlobalCancellationToken.Cts.Token);
         }
     }
 }

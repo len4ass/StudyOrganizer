@@ -3,44 +3,51 @@ using Serilog;
 using StudyOrganizer.Helper;
 using StudyOrganizer.Helper.Serializers;
 using StudyOrganizer.Repositories.Master;
-using StudyOrganizer.Services.BotService.Command;
+using StudyOrganizer.Services.TriggerService;
+using StudyOrganizer.Services.TriggerService.Jobs;
 using StudyOrganizer.Settings;
+using Telegram.Bot;
+using IJob = StudyOrganizer.Services.TriggerService.Jobs.IJob;
 
 namespace StudyOrganizer.Loaders;
 
-public class CommandLoader
+public class CronJobLoader
 {
     private bool _isLoaded;
     
-    private readonly string _commandDirPath;
-    private readonly string _commandSettingsDirPath;
+    private readonly string _triggersDirPath;
+    private readonly string _triggersSettingsDirPath;
     
     private readonly IMasterRepository _masterRepository;
     private readonly GeneralSettings _generalSettings;
-    private readonly IDictionary<string, BotCommand> _commandImplementations 
-        = new Dictionary<string, BotCommand>(); 
+    private readonly ITelegramBotClient _botClient;
+    
+    private readonly IDictionary<string, IJob> _jobImplementations 
+        = new Dictionary<string, IJob>(); 
 
-    public CommandLoader(
+    public CronJobLoader(
         IMasterRepository masterRepository, 
         GeneralSettings generalSettings, 
-        string commandDirPath,
-        string commandSettingsDirPath)
+        ITelegramBotClient botClient, 
+        string triggersDirPath,
+        string triggersSettingsDirPath)
     {
         _masterRepository = masterRepository;
         _generalSettings = generalSettings;
-        _commandDirPath = commandDirPath;
-        _commandSettingsDirPath = commandSettingsDirPath;
+        _botClient = botClient;
+        _triggersDirPath = triggersDirPath;
+        _triggersSettingsDirPath = triggersSettingsDirPath;
     }
-
-    private CommandSettings? GetCommandSettings(string commandName)
+    
+    private TriggerSettings? GetCronTriggerSettings(string triggerName)
     {
-        string pathToFile = Path.Combine(_commandSettingsDirPath, commandName + ".json");
+        string pathToFile = Path.Combine(_triggersSettingsDirPath, triggerName + ".json");
         if (!File.Exists(pathToFile))
         {
             return null;
         }
 
-        var loader = new DataHelper<CommandSettings>(new JsonHelper<CommandSettings>(pathToFile));
+        var loader = new DataHelper<TriggerSettings>(new JsonHelper<TriggerSettings>(pathToFile));
         try
         {
             return loader.LoadData();
@@ -50,17 +57,17 @@ public class CommandLoader
             return null;
         }
     }
-    
-    private void LoadCommands()
+
+    private void LoadJobs()
     {
         if (_isLoaded)
         {
             return;
         }
         
-        var commandDirectory = new DirectoryInfo(_commandDirPath);
-        var commandDllFiles = commandDirectory.GetFiles("*.dll");
-        foreach (var file in commandDllFiles)
+        var directory = new DirectoryInfo(_triggersDirPath);
+        var files = directory.GetFiles("*.dll");
+        foreach (var file in files)
         {
             var path = file.FullName;
             var type = ReflectionHelper.GetTypeFromAssembly(path);
@@ -72,38 +79,40 @@ public class CommandLoader
             var instance = ReflectionHelper.CreateTypeInstance(
                 type, 
                 _masterRepository, 
+                _botClient,
                 _generalSettings);
                 
-            if (instance is not BotCommand botCommand)
+            if (instance is not SimpleTrigger cronTrigger)
             {
                 continue;
             }
             
-            var settings = GetCommandSettings(botCommand.Name);
+            var settings = GetCronTriggerSettings(cronTrigger.Name);
             if (settings is not null)
             {
                 var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
                     settings, 
-                    botCommand);
+                    cronTrigger);
                 foreach (var change in changes)
                 {
                     Log.Logger.Information(
-                        $"Изменены настройки команды {botCommand.Name} при загрузке: " +
+                        $"Изменены настройки команды {cronTrigger.Name} при загрузке: " +
                         $"значение {change.Name} изменено с {change.PreviousValue} на {change.CurrentValue}");
                 }
             }
-
-            _commandImplementations[botCommand.Name] = botCommand;
-            Log.Logger.Information($"Команда {botCommand.Name} загружена.");
+            
+            _jobImplementations[cronTrigger.Name] = new CronJob(cronTrigger);
+            Log.Logger.Information($"Триггер {cronTrigger.Name} загружен.");
         }
 
         _isLoaded = true;
     }
+    
 
-    public IDictionary<string, BotCommand> GetCommandImplementations()
+    public IDictionary<string, IJob> GetTriggerImplementations()
     {
-        LoadCommands();
+        LoadJobs();
 
-        return _commandImplementations;
+        return _jobImplementations;
     }
 }

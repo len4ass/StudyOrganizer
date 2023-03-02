@@ -1,12 +1,12 @@
 ﻿using System.Text;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.Command;
+using StudyOrganizer.Repositories.BotCommand;
 using StudyOrganizer.Repositories.Master;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using BotCommand = StudyOrganizer.Services.BotService.BotCommand;
+using BotCommand = StudyOrganizer.Services.BotService.Command.BotCommand;
 
 namespace HelpCommand;
 
@@ -38,55 +38,36 @@ public sealed class HelpCommand : BotCommand
 
     private async Task<BotResponse> ParseResponse(UserInfo userInfo, IList<string> arguments)
     {
-        if (userInfo.Level < AccessLevel)
-        {
-            return new BotResponse
-            {
-                UserResponse = string.Format(Responses.AccessDenied, Name),
-                InternalResponse = string.Format(
-                    InternalResponses.AccessDenied,
-                    userInfo.Handle, 
-                    userInfo.Id, 
-                    Name)
-            };
-        }
-        
         if (arguments.Count == 0)
         {
             var userResponse = await FormatAllCommands();
-            return new BotResponse
-            {
-                UserResponse = userResponse,
-                InternalResponse = string.Format(
-                    InternalResponses.Success, 
-                    userInfo.Handle, 
-                    userInfo.Id, 
-                    Name)
-            };
+            return new BotResponse(
+                userResponse,
+                string.Format(
+                    InternalResponses.Success,
+                    userInfo.Handle,
+                    userInfo.Id,
+                    Name));
         }
 
         if (arguments.Count == 1)
         {
             var userResponse = await FormatCommand(arguments[0]);
-            return new BotResponse
-            {
-                UserResponse = userResponse,
-                InternalResponse = string.Format(
-                    InternalResponses.Success, 
-                    userInfo.Handle, 
-                    userInfo.Id, 
-                    Name)
-            };
+            return new BotResponse(
+                userResponse,
+                string.Format(
+                    InternalResponses.Success,
+                    userInfo.Handle,
+                    userInfo.Id,
+                    Name));
         }
 
-        return new BotResponse
-        {
-            UserResponse = string.Format(Responses.ArgumentLimitExceeded, Name),
-            InternalResponse = string.Format(InternalResponses.BadRequest, 
-                userInfo.Handle, 
-                userInfo.Id, 
-                Name)
-        };
+        return new BotResponse(
+            string.Format(Responses.ArgumentLimitExceeded, Name),
+            string.Format(InternalResponses.BadRequest,
+                userInfo.Handle,
+                userInfo.Id,
+                Name));
     }
     
     private async Task<string> FormatAllCommands()
@@ -112,6 +93,6 @@ public sealed class HelpCommand : BotCommand
             return $"Команды с именем {name} не существует.";
         }
 
-        return $"Информация о команде {command.Name}: \n{command.Description}";
+        return $"Информация о команде {command.Name}: \n{command.Description}\nУровень доступа: {command.AccessLevel}";
     }
 }

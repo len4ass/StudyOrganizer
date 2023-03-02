@@ -1,14 +1,19 @@
 using Serilog;
 using StudyOrganizer.Database;
+using StudyOrganizer.Extensions;
 using StudyOrganizer.Hooks;
 using StudyOrganizer.Loaders;
-using StudyOrganizer.Repositories.Command;
+using StudyOrganizer.Models.Command;
+using StudyOrganizer.Models.Trigger;
+using StudyOrganizer.Repositories.BotCommand;
 using StudyOrganizer.Repositories.Deadline;
 using StudyOrganizer.Repositories.Link;
 using StudyOrganizer.Repositories.Master;
+using StudyOrganizer.Repositories.SimpleTrigger;
 using StudyOrganizer.Repositories.User;
 using StudyOrganizer.Services;
 using StudyOrganizer.Services.BotService;
+using StudyOrganizer.Services.BotService.Command;
 using StudyOrganizer.Services.TriggerService;
 using StudyOrganizer.Services.TriggerService.Jobs;
 using StudyOrganizer.Settings;
@@ -18,15 +23,25 @@ namespace StudyOrganizer;
 
 public class ProgramRunner
 {
+    private readonly WorkingPaths _workingPaths;
+    private readonly IMasterRepository _masterRepository = new MasterRepository();
+    
     private GeneralSettings _settings = null!;
-    
-    private MyDbContext _dbContext = new MyDbContext();
-    private IMasterRepository _masterRepository = new MasterRepository();
-    
     private BotCommandAggregator _commandAggregator = null!;
+    private CronJobAggregator _cronJobAggregator = null!;
     private ServiceAggregator _serviceAggregator = null!;
-
     private ITelegramBotClient _client = null!;
+
+    private readonly MyDbContext _dbCommandContext = new();
+    private readonly MyDbContext _dbDeadlineContext = new();
+    private readonly MyDbContext _dbLinkContext = new();
+    private readonly MyDbContext _dbUserContext = new();
+    private readonly MyDbContext _dbTriggerContext = new();
+
+    public ProgramRunner(WorkingPaths workingPaths)
+    {
+        _workingPaths = workingPaths;
+    }
 
     private void InitializeLogger()
     {
@@ -36,16 +51,17 @@ public class ProgramRunner
             .CreateLogger();
     }
     
-    private void LoadSettings()
-    {
-        ProgramData.AssertSafeFileAccess();
-        _settings = ProgramData.LoadFrom<GeneralSettings>(PathContainer.SettingsPath);
-        ProgramData.ValidateSettings(_settings);
-    }
-
     private void PrepareBot()
     {
-        _client = new TelegramBotClient(_settings.Token!);
+        var token = ProgramData.LoadFrom<Token>(_workingPaths.TokenFile);
+        ArgumentNullException.ThrowIfNull(token.BotToken);
+        _client = new TelegramBotClient(token.BotToken);
+    }
+
+    private void LoadSettings()
+    {
+        _settings = ProgramData.LoadFrom<GeneralSettings>(_workingPaths.SettingsFile);
+        ArgumentNullException.ThrowIfNull(_settings);
     }
 
     private void LoadCommands()
@@ -53,46 +69,58 @@ public class ProgramRunner
         var commandLoader = new CommandLoader(
             _masterRepository, 
             _settings, 
-            PathContainer.CommandsDirectory);
+            _workingPaths.CommandsDirectory,
+            _workingPaths.CommandsSettingsDirectory);
+
+        var commands = commandLoader.GetCommandImplementations();
+        _commandAggregator = new BotCommandAggregator(commands);
         
-        _commandAggregator = new BotCommandAggregator(commandLoader.GetCommandImplementations());
-        var commandsInfo = commandLoader.GetCommandInfoData();
-        if (!_dbContext.Commands.Any())
+        using var dbContext = new MyDbContext();
+        dbContext.Commands.Clear();
+        foreach (var (_, command) in commands)
         {
-            _dbContext.Commands.AddRange(commandsInfo);
-            _dbContext.SaveChanges();
-            return;
+            dbContext.Commands.Add(ReflectionHelper.Convert<BotCommand, CommandInfo>(command));
         }
 
-        var commands = _dbContext.Commands.ToList();
-        foreach (var command in commands)
-        {
-            if (!commandsInfo.Contains(command))
-            {
-                _dbContext.Commands.Remove(command);
-                _dbContext.SaveChanges();
-            }
-            else
-            {
-                _dbContext.Commands.Remove(command);
-                _dbContext.SaveChanges();
-                _dbContext.Commands.Add(command);
-                _dbContext.SaveChanges();
-            }
-        }
+        dbContext.SaveChanges();
     }
 
+    private void LoadCronJobs()
+    {
+        var cronJobLoader = new CronJobLoader(
+                _masterRepository, 
+                _settings,
+                _client, 
+                _workingPaths.TriggersDirectory,
+                _workingPaths.TriggersSettingsDirectory);
+
+        var jobs = cronJobLoader.GetTriggerImplementations();
+        _cronJobAggregator = new CronJobAggregator(jobs);
+        
+        using var dbContext = new MyDbContext();
+        dbContext.Triggers.Clear();
+        foreach (var (_, job) in jobs)
+        {
+            dbContext.Triggers.Add(
+                ReflectionHelper.Convert<SimpleTrigger, TriggerInfo>(job.GetInternalTrigger()));
+        }
+
+        dbContext.SaveChanges();
+    }
+    
     private void InjectRepositories()
     {
-        var commandRepository = new CommandInfoRepository(_dbContext);
-        var deadlineRepository = new DeadlineInfoRepository(_dbContext);
-        var linkRepository = new LinkInfoRepository(_dbContext);
-        var userRepository = new UserInfoRepository(_dbContext);
+        var commandRepository = new CommandInfoRepository(_dbCommandContext);
+        var deadlineRepository = new DeadlineInfoRepository(_dbDeadlineContext);
+        var linkRepository = new LinkInfoRepository(_dbLinkContext);
+        var userRepository = new UserInfoRepository(_dbUserContext);
+        var triggerRepository = new SimpleTriggerRepository(_dbUserContext);
 
         _masterRepository.Add("command", commandRepository);
         _masterRepository.Add("deadline", deadlineRepository);
         _masterRepository.Add("link", linkRepository);
         _masterRepository.Add("user", userRepository);
+        _masterRepository.Add("trigger", triggerRepository);
     }
 
     private IDictionary<string, IService> PrepareServices()
@@ -103,26 +131,28 @@ public class ProgramRunner
             _settings, 
             _commandAggregator, 
             _client));
-        services.Add("trigger", new TriggerService(PrepareCrons()));
-
+        services.Add("trigger", new SimpleTriggerService(_cronJobAggregator));
+        services.Add("bot_command_observer", new BotCommandObserverService(
+            _commandAggregator, 
+            _dbCommandContext,
+            _workingPaths.CommandsSettingsDirectory));
+        services.Add("trigger_observer", new CronJobObserverService(
+            _cronJobAggregator, 
+            _dbTriggerContext,
+            _workingPaths.TriggersSettingsDirectory));
 
         return services;
     }
 
-    private IDictionary<string, IJob> PrepareCrons()
-    {
-        IDictionary<string, IJob> crons = new Dictionary<string, IJob>();
-        crons.Add("test", new CustomJob(new TestTrigger(_masterRepository, _client, _settings)));
-        return crons;
-    }
+    
 
     private async Task StartServices()
     {
         _serviceAggregator = new ServiceAggregator(PrepareServices());
         await _serviceAggregator.StartAll();
-        
 
         Console.ReadLine();
+        GlobalCancellationToken.Cts.Cancel();
     }
 
     private void InitializeExitHooks()
@@ -130,11 +160,6 @@ public class ProgramRunner
         EventHook.AddMethodOnProcessExit((_, _) =>
         {
             Log.Logger.Information("Завершение работы.");
-            var readOnlyList = (_masterRepository.Find("command") as ICommandInfoRepository)?.GetDataAsync().Result;
-            if (readOnlyList is not null)
-            {
-                _dbContext.Commands.RemoveRange(readOnlyList);
-            }
         });
     }
 
@@ -152,6 +177,7 @@ public class ProgramRunner
         LoadSettings();
         PrepareBot();
         LoadCommands();
+        LoadCronJobs();
         InjectRepositories();
         InitializeExitHooks();
         CatchUnhandledExceptions();

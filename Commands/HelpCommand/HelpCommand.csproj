@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\StudyOrganizer\StudyOrganizer.csproj" />
+      <ProjectReference Include="..\..\StudyOrganizer\StudyOrganizer.csproj" />
     </ItemGroup>
 
 </Project>

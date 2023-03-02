@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
 using StudyOrganizer.Models.User;
 
 namespace StudyOrganizer.Models.Command;
@@ -8,7 +9,11 @@ public class CommandInfo
     [Key]
     public string Name { get; init; }
     public string Description { get; init; }
-    public AccessLevel AccessLevel { get; init; }
+    public AccessLevel AccessLevel { get; set; }
+
+    public CommandInfo()
+    {
+    }
     
     public CommandInfo(string name, string description, AccessLevel accessLevel)
     {

@@ -12,7 +12,7 @@ public sealed class UserInfo
     public AccessLevel Level { get; init; }
     public bool CoolestOfTheDay { get; init; }
     public int WonCOTD { get; init; }
-    public DateTime BirthdayUtc { get; init; }
+    public DateTimeOffset BirthdayUtc { get; init; }
 
     public override bool Equals(object? obj)
     {

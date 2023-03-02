@@ -1,8 +1,10 @@
 using Serilog;
+using Serilog.Core;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Parsers;
 using StudyOrganizer.Repositories.Master;
 using StudyOrganizer.Repositories.User;
+using StudyOrganizer.Services.BotService.Command;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
@@ -38,8 +40,9 @@ public class BotService : IService
         };
 
         var bot = await _client.GetMeAsync(cancellationToken);
-        Log.Logger.Information($"Бот {bot.Username} ({bot.Id}) успешно начал поллинг.");
         StartReceiving(receiverOptions, cancellationToken);
+        Log.Logger.Information($"Бот {bot.Username} ({bot.Id}) успешно начал поллинг.");
+        await BotMessager.Send(_client, _generalSettings.MainChatId, "Бот запущен!");
     }
     
     private void StartReceiving(ReceiverOptions receiverOptions, CancellationToken cancellationToken)
@@ -47,7 +50,7 @@ public class BotService : IService
         var queuedReceiver = new QueuedUpdateReceiver(_client, receiverOptions, PollingErrorHandler);
         Task.Run(async () =>
         {
-            await foreach (var update in queuedReceiver)
+            await foreach (var update in queuedReceiver.WithCancellation(cancellationToken))
             {
                 try
                 {
@@ -68,34 +71,34 @@ public class BotService : IService
     {
         if (message.From is null)
         {
-            return new BotResponse {InternalResponse = "Не удалось идентифицировать отправителя"};
+            return new BotResponse("", "Не удалось идентифицировать отправителя");
         }
 
         var userFinder = _masterRepository.Find("user") as IUserInfoRepository;
         var user = await userFinder?.FindAsync(message.From.Id)!;
-        if (user is null) 
+        if (user is null)
         {
-            return new BotResponse {InternalResponse = 
-                $"Пользователя {message.From.FirstName} ({message.From.Id}) нет в белом списке."};
+            return new BotResponse("",
+                $"Пользователя {message.From.FirstName} ({message.From.Id}) нет в белом списке.");
         }
 
         if (message.Chat.Id != message.From.Id && message.Chat.Id != _generalSettings.MainChatId)
         {
-            return new BotResponse {InternalResponse = 
-                $"Сообщение пользователя {user.Name} ({user.Id}) получено не из основного чата/личных сообщений."};
+            return new BotResponse("",
+                $"Сообщение пользователя {user.Name} ({user.Id}) получено не из основного чата/личных сообщений.");
         }
 
         if (message.Text is null)
         {
-            return new BotResponse {InternalResponse = 
-                $"Сообщение от пользователя {user.Name} ({user.Id}) невозможно обработать."};
+            return new BotResponse("",
+                $"Сообщение от пользователя {user.Name} ({user.Id}) невозможно обработать.");
         }
 
         var args = TextParser.ParseMessageToCommand(message.Text);
         if (args.Count == 0)
         {
-            return new BotResponse {InternalResponse = 
-                $"Сообщение от пользователя {user.Name} ({user.Id}) не содержит команду."};
+            return new BotResponse("", 
+                $"Сообщение от пользователя {user.Name} ({user.Id}) не содержит команду.");
         }
 
         return await _botCommandAggregator.ExecuteCommandByNameAsync(
@@ -129,7 +132,7 @@ public class BotService : IService
                     Id = update.Message.From.Id,
                     Handle = update.Message.From.Username,
                     Name = update.Message.From.FirstName,
-                    Level = AccessLevel.Normal,
+                    Level = update.Message.From.Id == _generalSettings.OwnerId ? AccessLevel.Owner : AccessLevel.Normal,
                     MsgAmount = 1
                 };
 

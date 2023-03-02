@@ -1,22 +1,23 @@
-using StudyOrganizer.Repositories.Master;
+﻿using StudyOrganizer.Repositories.Master;
 using StudyOrganizer.Services.BotService;
+using StudyOrganizer.Services.TriggerService;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 
-namespace StudyOrganizer.Services.TriggerService;
+namespace HelloSimpleTrigger;
 
-public class TestTrigger : CronTrigger
+public class HelloSimpleTrigger : SimpleTrigger
 {
-    public TestTrigger(
+    public HelloSimpleTrigger(
         IMasterRepository masterRepository, 
-        ITelegramBotClient client,
+        ITelegramBotClient client, 
         GeneralSettings generalSettings) 
         : base(masterRepository, client, generalSettings)
     {
-        Hour = 14;
-        Minute = 16;
+        Hour = 22;
+        Minute = 17;
         Second = 0;
-        RunEveryGivenSeconds = 86400; // каждый день
+        RunEveryGivenSeconds = 30;
     }
 
     public override async Task ExecuteAsync()
