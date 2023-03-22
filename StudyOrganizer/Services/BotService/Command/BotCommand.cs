@@ -11,17 +11,14 @@ public abstract class BotCommand
 {
     public string Name { get; init; }
     public string Description { get; init; }
-    public AccessLevel AccessLevel { get; set; }
-    protected readonly IMasterRepository MasterRepository;
-    protected readonly GeneralSettings GeneralSettings;
     
-    protected BotCommand(IMasterRepository masterRepository, GeneralSettings generalSettings)
+    public CommandSettings Settings { get; set; }
+
+    protected BotCommand()
     {
         Name = "command";
         Description = "No description";
-        AccessLevel = AccessLevel.Normal;
-        MasterRepository = masterRepository;
-        GeneralSettings = generalSettings;
+        Settings = new CommandSettings();
     }
 
     public abstract Task<BotResponse> ExecuteAsync(
@@ -29,8 +26,7 @@ public abstract class BotCommand
         Message message,
         UserInfo userInfo,
         IList<string> arguments);
-
-
+    
     public override string ToString()
     {
         return $"/{Name}";

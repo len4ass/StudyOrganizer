@@ -1,12 +1,24 @@
+using System.Collections;
+
 namespace StudyOrganizer.Services.TriggerService.Jobs;
 
-public class CronJobAggregator
+public class CronJobAggregator : IEnumerable<KeyValuePair<string, IJob>>
 {
     private readonly IDictionary<string, IJob> _jobs;
 
+    public CronJobAggregator()
+    {
+        _jobs = new Dictionary<string, IJob>();
+    }
+    
     public CronJobAggregator(IDictionary<string, IJob> jobs)
     {
         _jobs = jobs;
+    }
+
+    public void RegisterJob(string name, IJob job)
+    {
+        _jobs[name] = job;
     }
 
     public IJob? JobExists(string name)
@@ -25,5 +37,15 @@ public class CronJobAggregator
         {
             job.Start(cancellationToken);
         }
+    }
+
+    public IEnumerator<KeyValuePair<string, IJob>> GetEnumerator()
+    {
+        return _jobs.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
 }

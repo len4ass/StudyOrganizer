@@ -15,6 +15,7 @@ public static class ProgramData
         return data;
     }
 
+    
     public static void SaveTo<T>(string path, T data)
     {
         var helper = new DataHelper<T>(new JsonHelper<T>(path));

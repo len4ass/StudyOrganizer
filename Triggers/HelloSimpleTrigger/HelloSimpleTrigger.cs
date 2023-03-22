@@ -14,10 +14,14 @@ public class HelloSimpleTrigger : SimpleTrigger
         GeneralSettings generalSettings) 
         : base(masterRepository, client, generalSettings)
     {
-        Hour = 22;
-        Minute = 17;
-        Second = 0;
-        RunEveryGivenSeconds = 30;
+        Settings = new TriggerSettings
+        {
+            ShouldRun = true,
+            Hour = 22,
+            Minute = 17,
+            Second = 0,
+            RunEveryGivenSeconds = 30
+        };
     }
 
     public override async Task ExecuteAsync()

@@ -45,9 +45,10 @@ public class ProgramRunner
 
     private void InitializeLogger()
     {
+        var path = Path.Combine(AppContext.BaseDirectory, "/data/logs/logs.txt");
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
-            .WriteTo.File("logs/logs.txt", rollingInterval: RollingInterval.Day)
+            .WriteTo.File(path, rollingInterval: RollingInterval.Day)
             .CreateLogger();
     }
     
@@ -126,7 +127,7 @@ public class ProgramRunner
     private IDictionary<string, IService> PrepareServices()
     {
         IDictionary<string, IService> services = new Dictionary<string, IService>();
-        services.Add("bot", new BotService(
+        /*services.Add("bot", new BotService(
             _masterRepository, 
             _settings, 
             _commandAggregator, 
@@ -139,20 +140,17 @@ public class ProgramRunner
         services.Add("trigger_observer", new CronJobObserverService(
             _cronJobAggregator, 
             _dbTriggerContext,
-            _workingPaths.TriggersSettingsDirectory));
+            _workingPaths.TriggersSettingsDirectory));*/
 
         return services;
     }
 
-    
-
-    private async Task StartServices()
+    private async Task StartServices(CancellationToken stoppingToken)
     {
         _serviceAggregator = new ServiceAggregator(PrepareServices());
-        await _serviceAggregator.StartAll();
+        await _serviceAggregator.StartAll(stoppingToken);
 
         Console.ReadLine();
-        GlobalCancellationToken.Cts.Cancel();
     }
 
     private void InitializeExitHooks()
@@ -171,7 +169,7 @@ public class ProgramRunner
         });
     }
 
-    public async Task Run()
+    public async Task Run(CancellationToken stoppingToken)
     {
         InitializeLogger();
         LoadSettings();
@@ -181,7 +179,7 @@ public class ProgramRunner
         InjectRepositories();
         InitializeExitHooks();
         CatchUnhandledExceptions();
-        await StartServices();
+        await StartServices(stoppingToken);
     }
 }
 

@@ -5,6 +5,7 @@ using Serilog;
 using Serilog.Core;
 using StudyOrganizer.Database;
 using StudyOrganizer.Loaders;
+using StudyOrganizer.Repositories.SimpleTrigger;
 using StudyOrganizer.Settings;
 
 namespace StudyOrganizer.Services.TriggerService.Jobs;
@@ -12,18 +13,18 @@ namespace StudyOrganizer.Services.TriggerService.Jobs;
 public class CronJobObserverService : IService
 {
     private readonly CronJobAggregator _cronJobAggregator;
-    private readonly string _observedDirectory;
-    private readonly MyDbContext _dbContext;
+    private readonly ISimpleTriggerRepository _triggerRepository;
+    private readonly WorkingPaths _workingPaths;
     private FileSystemWatcher _observer;
 
     public CronJobObserverService(
         CronJobAggregator cronJobAggregator, 
-        MyDbContext dbContext,
-        string observedDirectory)
+        ISimpleTriggerRepository triggerRepository,
+        WorkingPaths workingPaths)
     {
         _cronJobAggregator = cronJobAggregator;
-        _dbContext = dbContext;
-        _observedDirectory = observedDirectory;
+        _triggerRepository = triggerRepository;
+        _workingPaths = workingPaths;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -34,7 +35,7 @@ public class CronJobObserverService : IService
 
     private void StartObserving()
     {
-        _observer = new FileSystemWatcher(_observedDirectory);
+        _observer = new FileSystemWatcher(_workingPaths.TriggersSettingsDirectory);
         _observer.NotifyFilter = NotifyFilters.LastWrite;
 
         _observer.Changed += OnChanged;
@@ -42,7 +43,7 @@ public class CronJobObserverService : IService
 
         _observer.Filter = "*.json";
         _observer.EnableRaisingEvents = true;
-        Log.Logger.Information($"Запущен мониторинг директории {_observedDirectory}");
+        Log.Logger.Information($"Запущен мониторинг директории {_workingPaths.TriggersSettingsDirectory}");
     }
 
     private void UpdateBotCommandInfo(string path)
@@ -72,12 +73,13 @@ public class CronJobObserverService : IService
             return;
         }
         
-        var triggerInDatabase = _dbContext.Commands.Find(trigger.Name);
+        var triggerInDatabase = _triggerRepository.FindAsync(trigger.Name).GetAwaiter().GetResult();
         var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
             settings,
-            trigger);
-        ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(settings, triggerInDatabase);
-        _dbContext.SaveChanges();
+            trigger.Settings);
+        ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(settings,
+            triggerInDatabase?.Settings);
+        _triggerRepository.SaveAsync();
 
         foreach (var change in changes)
         {

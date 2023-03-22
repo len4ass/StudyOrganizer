@@ -4,7 +4,6 @@ using StudyOrganizer.Models.Deadline;
 using StudyOrganizer.Models.Link;
 using StudyOrganizer.Models.Trigger;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Services.BotService.Command;
 
 namespace StudyOrganizer.Database;
 
@@ -23,6 +22,7 @@ public sealed class MyDbContext : DbContext
     
     protected override void OnConfiguring(DbContextOptionsBuilder dbContextOptionsBuilder)
     {
-        dbContextOptionsBuilder.UseSqlite("Data Source=bot_data.db");
+        var path = Path.Combine(AppContext.BaseDirectory, "bot_data.db");
+        dbContextOptionsBuilder.UseSqlite($"Data Source={path}");
     }
 }

@@ -1,13 +1,19 @@
+using System.Collections;
 using StudyOrganizer.Models.User;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
 namespace StudyOrganizer.Services.BotService.Command;
 
-public class BotCommandAggregator
+public class BotCommandAggregator : IEnumerable<KeyValuePair<string, BotCommand>>
 {
     private readonly IDictionary<string, BotCommand> _commands;
 
+    public BotCommandAggregator()
+    {
+        _commands = new Dictionary<string, BotCommand>();
+    }
+    
     public BotCommandAggregator(IDictionary<string, BotCommand> commands)
     {
         _commands = commands;
@@ -21,6 +27,11 @@ public class BotCommandAggregator
         }
 
         return null;
+    }
+
+    public void RegisterCommand(string name, BotCommand botCommand)
+    {
+        _commands[name] = botCommand;
     }
 
     public async Task<BotResponse> ExecuteCommandByNameAsync(
@@ -48,7 +59,7 @@ public class BotCommandAggregator
                     commandName));
         }
 
-        if (userInfo.Level < command.AccessLevel)
+        if (userInfo.Level < command.Settings.AccessLevel)
         {
             var responseAccessDenied = string.Format(Responses.AccessDenied, command.Name);
             await BotMessager.Reply(
@@ -70,5 +81,15 @@ public class BotCommandAggregator
             message,
             userInfo,
             arguments);
+    }
+
+    public IEnumerator<KeyValuePair<string, BotCommand>> GetEnumerator()
+    {
+        return _commands.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
 }

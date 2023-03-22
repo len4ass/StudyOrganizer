@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StudyOrganizer.Database;
+using StudyOrganizer.Extensions;
 using StudyOrganizer.Models.Deadline;
 
 namespace StudyOrganizer.Repositories.Deadline;
@@ -30,6 +31,12 @@ public class DeadlineInfoRepository : IDeadlineInfoRepository
     public async Task SaveAsync()
     {
         await _dbContext.SaveChangesAsync();
+    }
+
+    public Task ClearAllAsync()
+    {
+        _dbContext.Deadlines.Clear();
+        return Task.CompletedTask;
     }
 
     public async Task<IReadOnlyList<DeadlineInfo>> GetDataAsync()

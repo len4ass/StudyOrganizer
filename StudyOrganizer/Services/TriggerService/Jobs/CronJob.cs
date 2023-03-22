@@ -19,11 +19,15 @@ public class CronJob : IJob
             while (!cancellationToken.IsCancellationRequested)
             {
                 var nextTask = new DateTime(
-                    DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, _simpleTrigger.Hour, _simpleTrigger.Minute,
-                    _simpleTrigger.Second);
+                    DateTime.Now.Year, 
+                    DateTime.Now.Month, 
+                    DateTime.Now.Day, 
+                    _simpleTrigger.Settings.Hour, 
+                    _simpleTrigger.Settings.Minute,
+                    _simpleTrigger.Settings.Second);
                 while (nextTask - DateTime.Now < TimeSpan.Zero)
                 {
-                    nextTask += new TimeSpan(0, 0, 0, _simpleTrigger.RunEveryGivenSeconds);
+                    nextTask += new TimeSpan(0, 0, 0, _simpleTrigger.Settings.RunEveryGivenSeconds);
                 }
 
                 var timeLeftTillNextTask = nextTask - DateTime.Now;
@@ -36,7 +40,7 @@ public class CronJob : IJob
                     break;
                 }
 
-                if (_simpleTrigger.ShouldRun)
+                if (_simpleTrigger.Settings.ShouldRun)
                 {
                     await _simpleTrigger.ExecuteAsync();
                     Log.Logger.Information($"Таска {_simpleTrigger.Name} успешно отработала.");
@@ -49,12 +53,12 @@ public class CronJob : IJob
 
     public void Enable()
     {
-        _simpleTrigger.ShouldRun = true;
+        _simpleTrigger.Settings.ShouldRun = true;
     }
 
     public void Disable()
     {
-        _simpleTrigger.ShouldRun = false;
+        _simpleTrigger.Settings.ShouldRun = false;
     }
 
     public SimpleTrigger GetInternalTrigger()

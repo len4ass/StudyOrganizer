@@ -268,7 +268,11 @@ public static class ReflectionHelper
         }
     }
 
-    public static IList<ValueChange> UpdateObjectInstanceBasedOnOtherTypeValues(object? source, object? target)
+    public static IList<ValueChange> UpdateObjectInstanceBasedOnOtherTypeValues(
+        object? source, 
+        object? target, 
+        bool changeFields = false,
+        bool changeProperties = true)
     {
         if (source is null || target is null)
         {
@@ -276,8 +280,16 @@ public static class ReflectionHelper
         }
         
         var changes = new List<ValueChange>();
-        UpdateFields(source, target, changes);
-        UpdateProperties(source, target, changes);
+        if (changeFields)
+        {
+            UpdateFields(source, target, changes);
+        }
+
+        if (changeProperties)
+        {
+            UpdateProperties(source, target, changes);
+        }
+        
         return changes;
     }
     

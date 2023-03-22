@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Security.Cryptography;
 using StudyOrganizer.Models.User;
+using StudyOrganizer.Settings;
 
 namespace StudyOrganizer.Models.Command;
 
@@ -9,17 +11,18 @@ public class CommandInfo
     [Key]
     public string Name { get; init; }
     public string Description { get; init; }
-    public AccessLevel AccessLevel { get; set; }
+    
+    public CommandSettings Settings { get; set; }
 
     public CommandInfo()
     {
     }
     
-    public CommandInfo(string name, string description, AccessLevel accessLevel)
+    public CommandInfo(string name, string description, CommandSettings settings)
     {
         Name = name;
         Description = description;
-        AccessLevel = accessLevel;
+        Settings = settings;
     }
 
     public override string ToString()

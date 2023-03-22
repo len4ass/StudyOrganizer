@@ -15,18 +15,21 @@ namespace StudyOrganizer.Services.BotService;
 
 public class BotService : IService
 {
-    private readonly IMasterRepository _masterRepository;
+    //private readonly IMasterRepository _masterRepository;
     private readonly GeneralSettings _generalSettings;
+    private readonly IUserInfoRepository _userInfoRepository;
+    
     private readonly BotCommandAggregator _botCommandAggregator;
     private readonly ITelegramBotClient _client;
     
     public BotService(
-        IMasterRepository masterRepository, 
+        
+        IUserInfoRepository userInfoRepository, 
         GeneralSettings generalSettings, 
         BotCommandAggregator botCommandAggregator,
         ITelegramBotClient client)
     {
-        _masterRepository = masterRepository;
+        _userInfoRepository = userInfoRepository;
         _generalSettings = generalSettings;
         _botCommandAggregator = botCommandAggregator;
         _client = client;
@@ -53,7 +56,7 @@ public class BotService : IService
             await foreach (var update in queuedReceiver.WithCancellation(cancellationToken))
             {
                 try
-                {
+                { 
                     await PollingUpdateHandler(_client, update, cancellationToken);
                 }
                 catch (Exception exсeption)
@@ -73,9 +76,8 @@ public class BotService : IService
         {
             return new BotResponse("", "Не удалось идентифицировать отправителя");
         }
-
-        var userFinder = _masterRepository.Find("user") as IUserInfoRepository;
-        var user = await userFinder?.FindAsync(message.From.Id)!;
+        
+        var user = await _userInfoRepository.FindAsync(message.From.Id);
         if (user is null)
         {
             return new BotResponse("",
@@ -123,8 +125,7 @@ public class BotService : IService
             && update.Message.From is not null
             && !update.Message.From.IsBot)
         {
-            var userRepository = _masterRepository.Find("user") as IUserInfoRepository;
-            var user = await userRepository?.FindAsync(update.Message.From.Id)!;
+            var user = await _userInfoRepository.FindAsync(update.Message.From.Id);
             if (user is null)
             {
                 var newUser = new UserInfo
@@ -136,8 +137,8 @@ public class BotService : IService
                     MsgAmount = 1
                 };
 
-                await userRepository.AddAsync(newUser);
-                await userRepository.SaveAsync();
+                await _userInfoRepository.AddAsync(newUser);
+                await _userInfoRepository.SaveAsync();
                 Log.Logger.Information(
                     $"Пользователь {newUser.Handle} ({newUser.Id}) добавлен в белый список.");
             }

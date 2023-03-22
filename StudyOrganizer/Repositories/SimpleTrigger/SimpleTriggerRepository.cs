@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StudyOrganizer.Database;
+using StudyOrganizer.Extensions;
 using StudyOrganizer.Models.Trigger;
 
 namespace StudyOrganizer.Repositories.SimpleTrigger;
@@ -13,19 +14,25 @@ public class SimpleTriggerRepository : ISimpleTriggerRepository
         _dbContext = dbContext;
     }
     
-    public Task AddAsync(TriggerInfo data)
+    public async Task AddAsync(TriggerInfo data)
     {
-        throw new NotSupportedException();
+        await _dbContext.Triggers.AddAsync(data);
     }
     
     public Task RemoveAsync(TriggerInfo data)
     {
         throw new NotSupportedException();
     }
-    
-    public Task SaveAsync()
+
+    public async Task SaveAsync()
     {
-        throw new NotSupportedException();
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public Task ClearAllAsync()
+    {
+        _dbContext.Triggers.Clear();
+        return Task.CompletedTask;
     }
 
     public async Task<IReadOnlyList<TriggerInfo>> GetDataAsync()

@@ -12,11 +12,9 @@ public abstract class SimpleTrigger
 {
     public string Name { get; init; }
     public string Description { get; init; }
-    public int Hour { get; set; }
-    public int Minute { get; set; }
-    public int Second { get; set; }
-    public int RunEveryGivenSeconds { get; set; }
-    public bool ShouldRun { get; set; }
+
+    public TriggerSettings Settings { get; set; }
+    
     protected readonly IMasterRepository MasterRepository;
     protected readonly GeneralSettings GeneralSettings;
     protected readonly ITelegramBotClient Client;
@@ -28,7 +26,7 @@ public abstract class SimpleTrigger
     {
         Name = "trigger";
         Description = "No description";
-        ShouldRun = true;
+        Settings = new TriggerSettings();
         MasterRepository = masterRepository;
         Client = client;
         GeneralSettings = generalSettings;

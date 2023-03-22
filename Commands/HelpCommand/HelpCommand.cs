@@ -12,12 +12,18 @@ namespace HelpCommand;
 
 public sealed class HelpCommand : BotCommand
 {
-    public HelpCommand(IMasterRepository masterRepository, GeneralSettings generalSettings) 
-        : base(masterRepository, generalSettings)
+    private readonly ICommandInfoRepository _commandInfoRepository;
+    
+    public HelpCommand(ICommandInfoRepository commandInfoRepository)
     {
         Name = "help";
         Description = "Выводит список всех команд или описание команды по имени.";
-        AccessLevel = AccessLevel.Normal;
+        Settings = new CommandSettings
+        {
+            AccessLevel = AccessLevel.Normal
+        };
+
+        _commandInfoRepository = commandInfoRepository;
     }
 
     public override async Task<BotResponse> ExecuteAsync(
@@ -72,9 +78,7 @@ public sealed class HelpCommand : BotCommand
     
     private async Task<string> FormatAllCommands()
     {
-        var commandRepository = MasterRepository.Find("command") as ICommandInfoRepository;
-        var commands = await commandRepository?.GetDataAsync()!;
-
+        var commands = await _commandInfoRepository.GetDataAsync();
         var sb = new StringBuilder("Список всех команд: \n \n");
         for (int i = 0; i < commands.Count; i++)
         {
@@ -86,13 +90,12 @@ public sealed class HelpCommand : BotCommand
 
     private async Task<string> FormatCommand(string name)
     {
-        var commandHandler = MasterRepository.Find("command") as ICommandInfoRepository;
-        var command = await commandHandler?.FindAsync(name)!;
+        var command = await _commandInfoRepository.FindAsync(name);
         if (command is null)
         {
             return $"Команды с именем {name} не существует.";
         }
 
-        return $"Информация о команде {command.Name}: \n{command.Description}\nУровень доступа: {command.AccessLevel}";
+        return $"Информация о команде {command.Name}: \n{command.Description}\nУровень доступа: {command.Settings.AccessLevel}";
     }
 }

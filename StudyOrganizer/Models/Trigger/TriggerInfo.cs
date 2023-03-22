@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using StudyOrganizer.Settings;
 
 namespace StudyOrganizer.Models.Trigger;
 
@@ -7,11 +8,8 @@ public class TriggerInfo
     [Key]
     public string Name { get; init; }
     public string Description { get; init; }
-    public int Hour { get; set; }
-    public int Minute { get; set; }
-    public int Second { get; set; }
-    public int RunEveryGivenSeconds { get; set; }
-    public bool ShouldRun { get; set; }
+
+    public TriggerSettings Settings { get; set; }
 
     public TriggerInfo()
     {
@@ -20,19 +18,11 @@ public class TriggerInfo
     public TriggerInfo(
         string name, 
         string description, 
-        int hour = 0, 
-        int minute = 0, 
-        int second = 0, 
-        int runEveryGivenSeconds = 0, 
-        bool shouldRun = false)
+        TriggerSettings settings)
     {
         Name = name;
         Description = description;
-        Hour = hour;
-        Minute = minute;
-        Second = second;
-        RunEveryGivenSeconds = runEveryGivenSeconds;
-        ShouldRun = shouldRun;
+        Settings = settings;
     }
     
     public override string ToString()

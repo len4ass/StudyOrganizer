@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StudyOrganizer.Database;
+using StudyOrganizer.Extensions;
 using StudyOrganizer.Models.User;
 
 namespace StudyOrganizer.Repositories.User;
@@ -30,6 +31,12 @@ public class UserInfoRepository : IUserInfoRepository
     public async Task SaveAsync()
     {
         await _dbContext.SaveChangesAsync();
+    }
+
+    public Task ClearAllAsync()
+    {
+        _dbContext.Users.Clear();
+        return Task.CompletedTask;
     }
 
     public async Task<IReadOnlyList<UserInfo>> GetDataAsync()

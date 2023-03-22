@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StudyOrganizer.Database;
+using StudyOrganizer.Extensions;
 using StudyOrganizer.Models.Command;
 
 namespace StudyOrganizer.Repositories.BotCommand;
@@ -13,9 +14,9 @@ public class CommandInfoRepository : ICommandInfoRepository
         _dbContext = dbContext;
     }
 
-    public Task AddAsync(CommandInfo data)
+    public async Task AddAsync(CommandInfo data)
     {
-        throw new NotSupportedException();
+        await _dbContext.AddAsync(data);
     }
 
     public Task RemoveAsync(CommandInfo data)
@@ -23,9 +24,15 @@ public class CommandInfoRepository : ICommandInfoRepository
         throw new NotSupportedException();
     }
 
-    public Task SaveAsync()
+    public async Task SaveAsync()
     {
-        throw new NotSupportedException();
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public Task ClearAllAsync()
+    {
+        _dbContext.Commands.Clear();
+        return Task.CompletedTask;
     }
 
     public async Task<IReadOnlyList<CommandInfo>> GetDataAsync()

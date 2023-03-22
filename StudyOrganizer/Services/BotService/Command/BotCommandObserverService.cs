@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using StudyOrganizer.Database;
 using StudyOrganizer.Loaders;
+using StudyOrganizer.Repositories.BotCommand;
 using StudyOrganizer.Settings;
 
 namespace StudyOrganizer.Services.BotService.Command;
@@ -10,18 +11,18 @@ namespace StudyOrganizer.Services.BotService.Command;
 public class BotCommandObserverService : IService
 {
     private readonly BotCommandAggregator _botCommandAggregator;
-    private readonly MyDbContext _dbContext;
-    private readonly string _observedDirectory;
+    private readonly ICommandInfoRepository _commandInfoRepository;
+    private readonly WorkingPaths _workingPaths;
     private FileSystemWatcher _observer;
 
     public BotCommandObserverService(
         BotCommandAggregator botCommandAggregator, 
-        MyDbContext dbContext,
-        string observedDirectory)
+        ICommandInfoRepository commandInfoRepository,
+        WorkingPaths workingPaths)
     {
         _botCommandAggregator = botCommandAggregator;
-        _dbContext = dbContext;
-        _observedDirectory = observedDirectory;
+        _commandInfoRepository = commandInfoRepository;
+        _workingPaths = workingPaths;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -32,7 +33,7 @@ public class BotCommandObserverService : IService
 
     private void StartObserving()
     {
-        _observer = new FileSystemWatcher(_observedDirectory);
+        _observer = new FileSystemWatcher(_workingPaths.CommandsSettingsDirectory);
         _observer.NotifyFilter = NotifyFilters.LastWrite;
 
         _observer.Changed += OnChanged;
@@ -40,7 +41,7 @@ public class BotCommandObserverService : IService
 
         _observer.Filter = "*.json";
         _observer.EnableRaisingEvents = true;
-        Log.Logger.Information($"Запущен мониторинг директории {_observedDirectory}");
+        Log.Logger.Information($"Запущен мониторинг директории {_workingPaths.CommandsSettingsDirectory}");
     }
 
     private void UpdateBotCommandInfo(string path)
@@ -69,14 +70,14 @@ public class BotCommandObserverService : IService
             return;
         }
 
-        var commandInDatabase = _dbContext.Commands.Find(command.Name);
+        var commandInDatabase = _commandInfoRepository.FindAsync(command.Name).GetAwaiter().GetResult();
         var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
             settings,
-            command);
+            command.Settings);
         ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
             settings, 
-            commandInDatabase);
-        _dbContext.SaveChanges();
+            commandInDatabase?.Settings);
+        _commandInfoRepository.SaveAsync();
         
         foreach (var change in changes)
         {
