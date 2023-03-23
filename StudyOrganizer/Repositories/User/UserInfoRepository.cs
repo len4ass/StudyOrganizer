@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using StudyOrganizer.Database;
 using StudyOrganizer.Extensions;
@@ -12,6 +13,11 @@ public class UserInfoRepository : IUserInfoRepository
     public UserInfoRepository(MyDbContext dbContext)
     {
         _dbContext = dbContext;
+    }
+    
+    public int Count()
+    {
+        return _dbContext.Users.Count();
     }
     
     public async Task AddAsync(UserInfo element)
@@ -51,7 +57,16 @@ public class UserInfoRepository : IUserInfoRepository
 
     public async Task<UserInfo?> FindAsync(string handle)
     {
-        var users = await GetDataAsync();
-        return users.FirstOrDefault(user => user.Handle == handle);
+        return await _dbContext.Users.FirstOrDefaultAsync(user => user.Handle == handle);
+    }
+
+    public async Task<UserInfo?> FindByPredicateAsync(Expression<Func<UserInfo, bool>> predicate)
+    {
+        return await _dbContext.Users.FirstOrDefaultAsync(predicate);
+    }
+
+    public UserInfo SkipAndTakeFirst(int skipCount)
+    {
+        return _dbContext.Users.Skip(skipCount).Take(1).ToList()[0];
     }
 }

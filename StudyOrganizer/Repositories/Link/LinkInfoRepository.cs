@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using StudyOrganizer.Database;
 using StudyOrganizer.Extensions;
@@ -47,5 +48,10 @@ public class LinkInfoRepository : ILinkInfoRepository
     public async Task<LinkInfo?> FindAsync(string name)
     {
         return await _dbContext.Links.FindAsync(name);
+    }
+
+    public async Task<LinkInfo?> FindByPredicateAsync(Expression<Func<LinkInfo, bool>> predicate)
+    {
+        return await _dbContext.Links.FirstOrDefaultAsync(predicate);
     }
 }

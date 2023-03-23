@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Serilog;
 using Serilog.Core;
 using StudyOrganizer.Database;
@@ -13,17 +14,17 @@ namespace StudyOrganizer.Services.TriggerService.Jobs;
 public class CronJobObserverService : IService
 {
     private readonly CronJobAggregator _cronJobAggregator;
-    private readonly ISimpleTriggerRepository _triggerRepository;
+    private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;    
     private readonly WorkingPaths _workingPaths;
     private FileSystemWatcher _observer;
 
     public CronJobObserverService(
         CronJobAggregator cronJobAggregator, 
-        ISimpleTriggerRepository triggerRepository,
+        PooledDbContextFactory<MyDbContext> dbContextFactory,
         WorkingPaths workingPaths)
     {
         _cronJobAggregator = cronJobAggregator;
-        _triggerRepository = triggerRepository;
+        _dbContextFactory = dbContextFactory;
         _workingPaths = workingPaths;
     }
 
@@ -72,14 +73,15 @@ public class CronJobObserverService : IService
             Log.Logger.Error(e, $"Не удалось обновить триггер {trigger.Name}!");
             return;
         }
-        
-        var triggerInDatabase = _triggerRepository.FindAsync(trigger.Name).GetAwaiter().GetResult();
+
+        using var dbContext = _dbContextFactory.CreateDbContext();
+        var triggerInDatabase = dbContext.Triggers.Find(trigger.Name);
         var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
             settings,
             trigger.Settings);
         ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(settings,
             triggerInDatabase?.Settings);
-        _triggerRepository.SaveAsync();
+        dbContext.SaveChanges();
 
         foreach (var change in changes)
         {

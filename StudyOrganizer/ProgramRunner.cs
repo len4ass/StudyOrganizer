@@ -23,7 +23,7 @@ namespace StudyOrganizer;
 
 public class ProgramRunner
 {
-    private readonly WorkingPaths _workingPaths;
+    /*private readonly WorkingPaths _workingPaths;
     private readonly IMasterRepository _masterRepository = new MasterRepository();
     
     private GeneralSettings _settings = null!;
@@ -140,7 +140,7 @@ public class ProgramRunner
         services.Add("trigger_observer", new CronJobObserverService(
             _cronJobAggregator, 
             _dbTriggerContext,
-            _workingPaths.TriggersSettingsDirectory));*/
+            _workingPaths.TriggersSettingsDirectory));
 
         return services;
     }
@@ -180,6 +180,6 @@ public class ProgramRunner
         InitializeExitHooks();
         CatchUnhandledExceptions();
         await StartServices(stoppingToken);
-    }
+    }*/
 }
 

@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Serilog;
 using Serilog.Core;
+using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Parsers;
 using StudyOrganizer.Repositories.Master;
@@ -17,19 +19,17 @@ public class BotService : IService
 {
     //private readonly IMasterRepository _masterRepository;
     private readonly GeneralSettings _generalSettings;
-    private readonly IUserInfoRepository _userInfoRepository;
+    private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
     
     private readonly BotCommandAggregator _botCommandAggregator;
     private readonly ITelegramBotClient _client;
     
-    public BotService(
-        
-        IUserInfoRepository userInfoRepository, 
+    public BotService(PooledDbContextFactory<MyDbContext> dbContextFactory,
         GeneralSettings generalSettings, 
         BotCommandAggregator botCommandAggregator,
         ITelegramBotClient client)
     {
-        _userInfoRepository = userInfoRepository;
+        _dbContextFactory = dbContextFactory;
         _generalSettings = generalSettings;
         _botCommandAggregator = botCommandAggregator;
         _client = client;
@@ -56,17 +56,28 @@ public class BotService : IService
             await foreach (var update in queuedReceiver.WithCancellation(cancellationToken))
             {
                 try
-                { 
-                    await PollingUpdateHandler(_client, update, cancellationToken);
+                {
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await PollingUpdateHandler(_client, update, cancellationToken);
+                        }
+                        catch (Exception exсeption)
+                        {
+                            Log.Logger.Error(exсeption, "Поймано исключение во время обработки запроса!");
+                        }
+
+                    }, cancellationToken);
                 }
                 catch (Exception exсeption)
                 {
-                    Log.Logger.Error(exсeption, "Поймано исключение во время обработки запроса!");
+                    Log.Logger.Error(exсeption, "Поймано исключение во время отпуска таски!");
                 }
             }
         }, cancellationToken).ConfigureAwait(false);
     }
-    
+
     private async Task<BotResponse> MessageUpdateHandler(
         ITelegramBotClient client,
         Message message,
@@ -76,8 +87,10 @@ public class BotService : IService
         {
             return new BotResponse("", "Не удалось идентифицировать отправителя");
         }
-        
-        var user = await _userInfoRepository.FindAsync(message.From.Id);
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cts);
+        var userInfoRepository = new UserInfoRepository(dbContext);
+        var user = await userInfoRepository.FindAsync(message.From.Id);
         if (user is null)
         {
             return new BotResponse("",
@@ -125,7 +138,9 @@ public class BotService : IService
             && update.Message.From is not null
             && !update.Message.From.IsBot)
         {
-            var user = await _userInfoRepository.FindAsync(update.Message.From.Id);
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cts);
+            var userInfoRepository = new UserInfoRepository(dbContext);
+            var user = await userInfoRepository.FindAsync(update.Message.From.Id);
             if (user is null)
             {
                 var newUser = new UserInfo
@@ -137,10 +152,15 @@ public class BotService : IService
                     MsgAmount = 1
                 };
 
-                await _userInfoRepository.AddAsync(newUser);
-                await _userInfoRepository.SaveAsync();
+                await userInfoRepository.AddAsync(newUser);
+                await userInfoRepository.SaveAsync();
                 Log.Logger.Information(
                     $"Пользователь {newUser.Handle} ({newUser.Id}) добавлен в белый список.");
+            }
+            else
+            {
+                user.MsgAmount++;
+                await userInfoRepository.SaveAsync();
             }
         }
 

@@ -6,8 +6,8 @@ namespace StudyOrganizer.Settings;
 public sealed class TriggerSettings
 {
     public bool ShouldRun { get; set; } 
-    public int Hour { get; init; }
-    public int Minute { get; init; }
-    public int Second { get; init; }
+    public int HourUtc { get; init; }
+    public int MinuteUtc { get; init; }
+    public int SecondUtc { get; init; }
     public int RunEveryGivenSeconds { get; init; }
 }

@@ -14,15 +14,14 @@ public sealed class MyDbContext : DbContext
     public DbSet<DeadlineInfo> Deadlines => Set<DeadlineInfo>();
     public DbSet<LinkInfo> Links => Set<LinkInfo>();
     public DbSet<TriggerInfo> Triggers => Set<TriggerInfo>();
-
-    public MyDbContext()
+    
+    private MyDbContext()
     {
         Database.EnsureCreated();
     }
-    
-    protected override void OnConfiguring(DbContextOptionsBuilder dbContextOptionsBuilder)
+
+    public MyDbContext(DbContextOptions dbContextOptions) : base(dbContextOptions)
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "bot_data.db");
-        dbContextOptionsBuilder.UseSqlite($"Data Source={path}");
+        Database.EnsureCreated();
     }
 }

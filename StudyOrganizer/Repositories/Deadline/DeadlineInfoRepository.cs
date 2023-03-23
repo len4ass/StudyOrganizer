@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using StudyOrganizer.Database;
 using StudyOrganizer.Extensions;
@@ -47,5 +48,10 @@ public class DeadlineInfoRepository : IDeadlineInfoRepository
     public async Task<DeadlineInfo?> FindAsync(string name)
     {
         return await _dbContext.Deadlines.FindAsync(name);
+    }
+
+    public async Task<DeadlineInfo?> FindByPredicateAsync(Expression<Func<DeadlineInfo, bool>> predicate)
+    {
+        return await _dbContext.Deadlines.FirstOrDefaultAsync(predicate);
     }
 }

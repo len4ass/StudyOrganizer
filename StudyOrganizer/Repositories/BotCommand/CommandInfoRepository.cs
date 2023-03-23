@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Extensions;
 using StudyOrganizer.Models.Command;
@@ -16,7 +18,7 @@ public class CommandInfoRepository : ICommandInfoRepository
 
     public async Task AddAsync(CommandInfo data)
     {
-        await _dbContext.AddAsync(data);
+        await _dbContext.Commands.AddAsync(data);
     }
 
     public Task RemoveAsync(CommandInfo data)
@@ -43,5 +45,10 @@ public class CommandInfoRepository : ICommandInfoRepository
     public async Task<CommandInfo?> FindAsync(string name)
     {
         return await _dbContext.Commands.FindAsync(name);
+    }
+
+    public async Task<CommandInfo?> FindByPredicateAsync(Expression<Func<CommandInfo, bool>> predicate)
+    {
+        return await _dbContext.Commands.FirstOrDefaultAsync(predicate);
     }
 }

@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using StudyOrganizer.Database;
 using StudyOrganizer.Extensions;
@@ -43,5 +44,10 @@ public class SimpleTriggerRepository : ISimpleTriggerRepository
     public async Task<TriggerInfo?> FindAsync(string element)
     {
         return await _dbContext.Triggers.FindAsync(element);
+    }
+
+    public async Task<TriggerInfo?> FindByPredicateAsync(Expression<Func<TriggerInfo, bool>> predicate)
+    {
+        return await _dbContext.Triggers.FirstOrDefaultAsync(predicate);
     }
 }

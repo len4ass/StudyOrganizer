@@ -8,6 +8,7 @@ public class WorkingPaths
     public string CommandsSettingsDirectory { get; }
     public string TriggersDirectory { get; }
     public string TriggersSettingsDirectory { get; }
+    public string DataBaseFile { get; }
 
     public WorkingPaths(
         string tokenFile, 
@@ -15,7 +16,8 @@ public class WorkingPaths
         string commandsDirectory, 
         string commandsSettingsDirectory, 
         string triggersDirectory, 
-        string triggersSettingsDirectory)
+        string triggersSettingsDirectory,
+        string dataBaseFile)
     {
         TokenFile = tokenFile;
         SettingsFile = settingsFile;
@@ -23,5 +25,6 @@ public class WorkingPaths
         CommandsSettingsDirectory = commandsSettingsDirectory;
         TriggersDirectory = triggersDirectory;
         TriggersSettingsDirectory = triggersSettingsDirectory;
+        DataBaseFile = dataBaseFile;
     }
 }

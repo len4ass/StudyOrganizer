@@ -1,26 +1,50 @@
 ﻿using Autofac;
-using StudyOrganizer.Bot.Commands.Normal;
-using StudyOrganizer.Services.BotService;
+using Serilog;
+using StudyOrganizer.Hooks;
 using StudyOrganizer.Settings;
 
 namespace StudyOrganizer;
 
 internal static class Program
 {
+    private static void InitializeExitHooks()
+    {
+        EventHook.AddMethodOnProcessExit((_, _) =>
+        {
+            Log.Logger.Information("Завершение работы.");
+        });
+    }
+    
+    private static void CatchUnhandledExceptions()
+    {
+        EventHook.AddMethodOnUnhandledException((_, args) =>
+        {
+            Log.Logger.Error(args.ExceptionObject as Exception, "Необработанное исключение!");
+        });
+    }
+    
     public static async Task Main(string[] args)
     {
+        if (args.Length != 7)
+        {
+            Console.WriteLine("Некорректное количество параметров командной строки.");
+            return;
+        }
+        
+        InitializeExitHooks();
+        CatchUnhandledExceptions();
         var workingPaths = new WorkingPaths(
             Path.Combine(AppContext.BaseDirectory, args[0]),
             Path.Combine(AppContext.BaseDirectory, args[1]), 
             Path.Combine(AppContext.BaseDirectory, args[2]), 
             Path.Combine(AppContext.BaseDirectory, args[3]), 
             Path.Combine(AppContext.BaseDirectory, args[4]), 
-            Path.Combine(AppContext.BaseDirectory, args[5]));
+            Path.Combine(AppContext.BaseDirectory, args[5]),
+            Path.Combine(AppContext.BaseDirectory, args[6]));
 
         /*var runner = new ProgramRunner(workingPaths);
         await runner.Run(new CancellationTokenSource().Token);*/
         
-        //
         var services = new Startup(workingPaths, new ContainerBuilder()).ConfigureServices();
         var cts = new CancellationTokenSource();
         foreach (var service in services)

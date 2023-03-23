@@ -18,19 +18,21 @@ public class CronJob : IJob
             Log.Logger.Information($"Таска {_simpleTrigger.Name} запущена.");
             while (!cancellationToken.IsCancellationRequested)
             {
-                var nextTask = new DateTime(
-                    DateTime.Now.Year, 
-                    DateTime.Now.Month, 
-                    DateTime.Now.Day, 
-                    _simpleTrigger.Settings.Hour, 
-                    _simpleTrigger.Settings.Minute,
-                    _simpleTrigger.Settings.Second);
-                while (nextTask - DateTime.Now < TimeSpan.Zero)
+                var nextTask = new DateTimeOffset(
+                    DateTimeOffset.UtcNow.Year,
+                    DateTimeOffset.UtcNow.Month,
+                    DateTimeOffset.UtcNow.Day,
+                    _simpleTrigger.Settings.HourUtc,
+                    _simpleTrigger.Settings.MinuteUtc,
+                    _simpleTrigger.Settings.SecondUtc,
+                    TimeSpan.Zero);
+                
+                while (nextTask - DateTimeOffset.UtcNow < TimeSpan.Zero)
                 {
                     nextTask += new TimeSpan(0, 0, 0, _simpleTrigger.Settings.RunEveryGivenSeconds);
                 }
 
-                var timeLeftTillNextTask = nextTask - DateTime.Now;
+                var timeLeftTillNextTask = nextTask - DateTimeOffset.UtcNow;
                 try
                 {
                     await Task.Delay(timeLeftTillNextTask, cancellationToken);

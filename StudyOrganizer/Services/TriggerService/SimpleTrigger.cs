@@ -15,21 +15,11 @@ public abstract class SimpleTrigger
 
     public TriggerSettings Settings { get; set; }
     
-    protected readonly IMasterRepository MasterRepository;
-    protected readonly GeneralSettings GeneralSettings;
-    protected readonly ITelegramBotClient Client;
-
-    protected SimpleTrigger(
-        IMasterRepository masterRepository, 
-        ITelegramBotClient client, 
-        GeneralSettings generalSettings)
+    protected SimpleTrigger()
     {
         Name = "trigger";
         Description = "No description";
         Settings = new TriggerSettings();
-        MasterRepository = masterRepository;
-        Client = client;
-        GeneralSettings = generalSettings;
     }
 
     public abstract Task ExecuteAsync();

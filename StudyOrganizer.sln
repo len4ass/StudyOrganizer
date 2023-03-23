@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelpCommand", "Commands\Hel
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloSimpleTrigger", "Triggers\HelloSimpleTrigger\HelloSimpleTrigger.csproj", "{64160CCE-4560-46A3-B507-E3101AFCF17D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoolestOfTheDayTrigger", "Triggers\CoolestOfTheDayTrigger\CoolestOfTheDayTrigger.csproj", "{AFC8ED12-02E5-4B38-BEA4-375D65EA95F6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{64160CCE-4560-46A3-B507-E3101AFCF17D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{64160CCE-4560-46A3-B507-E3101AFCF17D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{64160CCE-4560-46A3-B507-E3101AFCF17D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFC8ED12-02E5-4B38-BEA4-375D65EA95F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFC8ED12-02E5-4B38-BEA4-375D65EA95F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFC8ED12-02E5-4B38-BEA4-375D65EA95F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFC8ED12-02E5-4B38-BEA4-375D65EA95F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

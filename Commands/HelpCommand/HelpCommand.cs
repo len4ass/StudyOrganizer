@@ -1,4 +1,6 @@
 ﻿using System.Text;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Repositories.BotCommand;
 using StudyOrganizer.Repositories.Master;
@@ -12,9 +14,9 @@ namespace HelpCommand;
 
 public sealed class HelpCommand : BotCommand
 {
-    private readonly ICommandInfoRepository _commandInfoRepository;
+    private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
     
-    public HelpCommand(ICommandInfoRepository commandInfoRepository)
+    public HelpCommand(PooledDbContextFactory<MyDbContext> dbContextFactory)
     {
         Name = "help";
         Description = "Выводит список всех команд или описание команды по имени.";
@@ -23,7 +25,7 @@ public sealed class HelpCommand : BotCommand
             AccessLevel = AccessLevel.Normal
         };
 
-        _commandInfoRepository = commandInfoRepository;
+        _dbContextFactory = dbContextFactory;
     }
 
     public override async Task<BotResponse> ExecuteAsync(
@@ -78,7 +80,9 @@ public sealed class HelpCommand : BotCommand
     
     private async Task<string> FormatAllCommands()
     {
-        var commands = await _commandInfoRepository.GetDataAsync();
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var commandRepository = new CommandInfoRepository(dbContext);
+        var commands = await commandRepository.GetDataAsync();
         var sb = new StringBuilder("Список всех команд: \n \n");
         for (int i = 0; i < commands.Count; i++)
         {
@@ -90,7 +94,9 @@ public sealed class HelpCommand : BotCommand
 
     private async Task<string> FormatCommand(string name)
     {
-        var command = await _commandInfoRepository.FindAsync(name);
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var commandRepository = new CommandInfoRepository(dbContext);
+        var command = await commandRepository.FindAsync(name);
         if (command is null)
         {
             return $"Команды с именем {name} не существует.";

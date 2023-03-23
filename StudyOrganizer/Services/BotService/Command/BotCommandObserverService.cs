@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Serilog;
 using StudyOrganizer.Database;
 using StudyOrganizer.Loaders;
@@ -11,17 +12,17 @@ namespace StudyOrganizer.Services.BotService.Command;
 public class BotCommandObserverService : IService
 {
     private readonly BotCommandAggregator _botCommandAggregator;
-    private readonly ICommandInfoRepository _commandInfoRepository;
+    private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
     private readonly WorkingPaths _workingPaths;
     private FileSystemWatcher _observer;
 
     public BotCommandObserverService(
         BotCommandAggregator botCommandAggregator, 
-        ICommandInfoRepository commandInfoRepository,
+        PooledDbContextFactory<MyDbContext> dbContextFactory,
         WorkingPaths workingPaths)
     {
         _botCommandAggregator = botCommandAggregator;
-        _commandInfoRepository = commandInfoRepository;
+        _dbContextFactory = dbContextFactory;
         _workingPaths = workingPaths;
     }
 
@@ -70,14 +71,15 @@ public class BotCommandObserverService : IService
             return;
         }
 
-        var commandInDatabase = _commandInfoRepository.FindAsync(command.Name).GetAwaiter().GetResult();
+        using var dbContext = _dbContextFactory.CreateDbContext();
+        var commandInDatabase = dbContext.Commands.Find(command.Name);
         var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
             settings,
             command.Settings);
         ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
             settings, 
             commandInDatabase?.Settings);
-        _commandInfoRepository.SaveAsync();
+        dbContext.SaveChanges();
         
         foreach (var change in changes)
         {

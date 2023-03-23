@@ -1,16 +1,13 @@
 using System.Reflection;
 using Autofac;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Serilog;
 using StudyOrganizer.Database;
+using StudyOrganizer.Extensions;
 using StudyOrganizer.Loaders;
 using StudyOrganizer.Models.Command;
 using StudyOrganizer.Models.Trigger;
-using StudyOrganizer.Repositories.BotCommand;
-using StudyOrganizer.Repositories.Deadline;
-using StudyOrganizer.Repositories.Link;
-using StudyOrganizer.Repositories.Master;
-using StudyOrganizer.Repositories.SimpleTrigger;
-using StudyOrganizer.Repositories.User;
 using StudyOrganizer.Services;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Command;
@@ -37,6 +34,16 @@ public class Startup
         _workingPaths = workingPaths;
         _containerBuilder = containerBuilder;
         _loadedTypes = new List<Type>();
+    }
+
+    private void ConfigureDatabasePooling()
+    {
+        var options = new DbContextOptionsBuilder<MyDbContext>()
+            .UseSqlite($"Data Source={_workingPaths.DataBaseFile}")
+            .Options;
+
+        var poolingContextFactory = new PooledDbContextFactory<MyDbContext>(options, poolSize: 16);
+        _containerBuilder.RegisterInstance(poolingContextFactory).SingleInstance();
     }
 
     private void ConfigureAggregators()
@@ -77,13 +84,11 @@ public class Startup
 
     private void ConfigureRepositories()
     {
-        _containerBuilder.RegisterType<MasterRepository>().As<IMasterRepository>();
-        _containerBuilder.RegisterType<MyDbContext>();
-        _containerBuilder.RegisterType<UserInfoRepository>().As<IUserInfoRepository>().SingleInstance();
-        _containerBuilder.RegisterType<DeadlineInfoRepository>().As<IDeadlineInfoRepository>().SingleInstance();
-        _containerBuilder.RegisterType<LinkInfoRepository>().As<ILinkInfoRepository>().SingleInstance();
-        _containerBuilder.RegisterType<CommandInfoRepository>().As<ICommandInfoRepository>().SingleInstance();
-        _containerBuilder.RegisterType<SimpleTriggerRepository>().As<ISimpleTriggerRepository>().SingleInstance();
+        /*_containerBuilder.RegisterType<UserInfoRepository>().As<IUserInfoRepository>();
+        _containerBuilder.RegisterType<DeadlineInfoRepository>().As<IDeadlineInfoRepository>();
+        _containerBuilder.RegisterType<LinkInfoRepository>().As<ILinkInfoRepository>();
+        _containerBuilder.RegisterType<CommandInfoRepository>().As<ICommandInfoRepository>();
+        _containerBuilder.RegisterType<SimpleTriggerRepository>().As<ISimpleTriggerRepository>();*/
     }
 
     private void RegisterDynamicTypes<T>(string pathToLook)
@@ -157,15 +162,15 @@ public class Startup
             _commandAggregator.RegisterCommand(command.Name, command);
         }
 
-        var commandInfoRepository = _container.Resolve<ICommandInfoRepository>();
-        commandInfoRepository.ClearAllAsync();
+        var dbContextFactory = _container.Resolve<PooledDbContextFactory<MyDbContext>>();
+        using var dbContext = dbContextFactory.CreateDbContext();
+        dbContext.Commands.Clear();
         foreach (var (_, command) in _commandAggregator)
         {
-            commandInfoRepository.AddAsync(
-                ReflectionHelper.Convert<BotCommand, CommandInfo>(command));
+            dbContext.Commands.Add(ReflectionHelper.Convert<BotCommand, CommandInfo>(command));
         }
 
-        commandInfoRepository.SaveAsync();
+        dbContext.SaveChanges();
     }
 
     private void LoadCronJobs()
@@ -201,15 +206,17 @@ public class Startup
             _cronJobAggregator.RegisterJob(trigger.Name, new CronJob(trigger));
         }
         
-        var triggerRepository = _container.Resolve<ISimpleTriggerRepository>();
-        triggerRepository.ClearAllAsync();
+        
+        var dbContextFactory = _container.Resolve<PooledDbContextFactory<MyDbContext>>();
+        using var dbContext = dbContextFactory.CreateDbContext();
+        dbContext.Triggers.Clear();
         foreach (var (_, job) in _cronJobAggregator)
         {
-            triggerRepository.AddAsync(
+            dbContext.Triggers.Add(
                 ReflectionHelper.Convert<SimpleTrigger, TriggerInfo>(job.GetInternalTrigger()));
         }
 
-        triggerRepository.SaveAsync();
+        dbContext.SaveChanges();
     }
 
     private IEnumerable<IService> CreateServices()
@@ -223,6 +230,7 @@ public class Startup
         ConfigureLogger();
         ConfigureBot();
         ConfigureSettings();
+        ConfigureDatabasePooling();
         ConfigureRepositories();
         RegisterDynamicTypes<BotCommand>(_workingPaths.CommandsDirectory);
         RegisterDynamicTypes<SimpleTrigger>(_workingPaths.TriggersDirectory);

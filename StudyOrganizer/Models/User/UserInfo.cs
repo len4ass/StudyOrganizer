@@ -8,11 +8,11 @@ public sealed class UserInfo
     public long Id { get; init; }
     public string? Name { get; init; }
     public string? Handle { get; init; }
-    public long MsgAmount { get; init; }
-    public AccessLevel Level { get; init; }
-    public bool CoolestOfTheDay { get; init; }
-    public int WonCOTD { get; init; }
-    public DateTimeOffset BirthdayUtc { get; init; }
+    public long MsgAmount { get; set; }
+    public AccessLevel Level { get; set; }
+    public bool CoolestOfTheDay { get; set; }
+    public int WonCOTD { get; set; }
+    public DateTimeOffset BirthdayUtc { get; set; }
 
     public override bool Equals(object? obj)
     {
