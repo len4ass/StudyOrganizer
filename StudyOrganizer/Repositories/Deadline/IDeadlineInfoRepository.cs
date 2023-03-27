@@ -6,7 +6,8 @@ public interface IDeadlineInfoRepository :
     IRepository, 
     IDataProvider<DeadlineInfo>, 
     IFindable<string, DeadlineInfo?>,
-    IPredicateFindable<DeadlineInfo>
+    IPredicateFindable<DeadlineInfo>,
+    IFilterable<DeadlineInfo>
 {
     
 }

@@ -25,7 +25,7 @@ internal static class Program
     
     public static async Task Main(string[] args)
     {
-        if (args.Length != 7)
+        if (args.Length != 9)
         {
             Console.WriteLine("Некорректное количество параметров командной строки.");
             return;
@@ -40,7 +40,9 @@ internal static class Program
             Path.Combine(AppContext.BaseDirectory, args[3]), 
             Path.Combine(AppContext.BaseDirectory, args[4]), 
             Path.Combine(AppContext.BaseDirectory, args[5]),
-            Path.Combine(AppContext.BaseDirectory, args[6]));
+            Path.Combine(AppContext.BaseDirectory, args[6]), 
+            Path.Combine(AppContext.BaseDirectory, args[7]),
+            Path.Combine(AppContext.BaseDirectory, args[8]));
 
         /*var runner = new ProgramRunner(workingPaths);
         await runner.Run(new CancellationTokenSource().Token);*/

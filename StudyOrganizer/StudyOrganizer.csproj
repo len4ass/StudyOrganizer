@@ -10,12 +10,18 @@
     <ItemGroup>
       <PackageReference Include="Autofac" Version="7.0.0" />
       <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="8.0.0" />
+      <PackageReference Include="ITCC.YandexSpeechKitClient" Version="1.0.3" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.2" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.0" />
+      <PackageReference Include="OpenAI" Version="1.6.0" />
       <PackageReference Include="Serilog.Sinks.Console" Version="4.1.1-dev-00901" />
       <PackageReference Include="Serilog.Sinks.File" Version="5.0.1-dev-00947" />
       <PackageReference Include="Telegram.Bot" Version="19.0.0-preview.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\YandexSpeechKitApi\YandexSpeechKitApi.csproj" />
     </ItemGroup>
 
 </Project>

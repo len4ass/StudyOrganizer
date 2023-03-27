@@ -6,14 +6,18 @@ public sealed class UserInfo
 {
     [Key]
     public long Id { get; init; }
-    public string? Name { get; init; }
-    public string? Handle { get; init; }
+    public string Name { get; set; }
+    public string? Handle { get; set; }
     public long MsgAmount { get; set; }
     public AccessLevel Level { get; set; }
     public bool CoolestOfTheDay { get; set; }
     public int WonCOTD { get; set; }
     public DateTimeOffset BirthdayUtc { get; set; }
 
+    public UserInfo()
+    {
+    }
+    
     public override bool Equals(object? obj)
     {
         if (obj is not UserInfo user)
@@ -31,14 +35,7 @@ public sealed class UserInfo
 
     public override int GetHashCode()
     {
-        unchecked
-        {
-            var hashCode = Id.GetHashCode();
-            hashCode = (hashCode * 397) ^ (int) Level;
-            hashCode = (hashCode * 397) ^ CoolestOfTheDay.GetHashCode();
-            hashCode = (hashCode * 397) ^ WonCOTD;
-            hashCode = (hashCode * 397) ^ BirthdayUtc.GetHashCode();
-            return hashCode;
-        }
+        var hashCode = Id.GetHashCode();
+        return hashCode;
     }
 }

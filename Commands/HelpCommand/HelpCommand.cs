@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Repositories.BotCommand;
-using StudyOrganizer.Repositories.Master;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
@@ -20,6 +19,7 @@ public sealed class HelpCommand : BotCommand
     {
         Name = "help";
         Description = "Выводит список всех команд или описание команды по имени.";
+        Format = "/help <optional:command_name>";
         Settings = new CommandSettings
         {
             AccessLevel = AccessLevel.Normal
@@ -49,33 +49,27 @@ public sealed class HelpCommand : BotCommand
         if (arguments.Count == 0)
         {
             var userResponse = await FormatAllCommands();
-            return new BotResponse(
-                userResponse,
-                string.Format(
-                    InternalResponses.Success,
-                    userInfo.Handle,
-                    userInfo.Id,
-                    Name));
+            return BotResponseFactory.Success(
+                Name, 
+                userResponse, 
+                userInfo.Handle!,
+                userInfo.Id);
         }
 
         if (arguments.Count == 1)
         {
             var userResponse = await FormatCommand(arguments[0]);
-            return new BotResponse(
-                userResponse,
-                string.Format(
-                    InternalResponses.Success,
-                    userInfo.Handle,
-                    userInfo.Id,
-                    Name));
+            return BotResponseFactory.Success(
+                Name, 
+                userResponse, 
+                userInfo.Handle!,
+                userInfo.Id);
         }
 
-        return new BotResponse(
-            string.Format(Responses.ArgumentLimitExceeded, Name),
-            string.Format(InternalResponses.BadRequest,
-                userInfo.Handle,
-                userInfo.Id,
-                Name));
+        return BotResponseFactory.ArgumentLimitExceeded(
+            Name, 
+            userInfo.Handle!, 
+            userInfo.Id);
     }
     
     private async Task<string> FormatAllCommands()
@@ -86,7 +80,7 @@ public sealed class HelpCommand : BotCommand
         var sb = new StringBuilder("Список всех команд: \n \n");
         for (int i = 0; i < commands.Count; i++)
         {
-            sb.AppendLine($"{i + 1}. {commands[i]}");
+            sb.AppendLine($"<b>{i + 1}</b>. {commands[i]}");
         }
 
         return sb.ToString();
@@ -99,9 +93,12 @@ public sealed class HelpCommand : BotCommand
         var command = await commandRepository.FindAsync(name);
         if (command is null)
         {
-            return $"Команды с именем {name} не существует.";
+            return $"Команды с именем <b>{name}</b> не существует.";
         }
 
-        return $"Информация о команде {command.Name}: \n{command.Description}\nУровень доступа: {command.Settings.AccessLevel}";
+        return $"Информация о команде <b>{command.Name}</b>: \n\n" +
+               $"<b>Описание</b>: {command.Description}\n" +
+               $"<b>Уровень доступа</b>: {command.Settings.AccessLevel}\n" +
+               $"<b>Формат</b>: <code>{command.Format.Replace("<", "").Replace(">", "")}</code>";
     }
 }

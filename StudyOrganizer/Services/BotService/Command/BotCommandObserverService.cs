@@ -1,10 +1,8 @@
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Serilog;
 using StudyOrganizer.Database;
 using StudyOrganizer.Loaders;
-using StudyOrganizer.Repositories.BotCommand;
 using StudyOrganizer.Settings;
 
 namespace StudyOrganizer.Services.BotService.Command;

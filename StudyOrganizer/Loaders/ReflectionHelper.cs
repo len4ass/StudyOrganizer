@@ -228,6 +228,11 @@ public static class ReflectionHelper
             
             var previousValue = GetFieldValue(target, field.Name);
             var newValue = GetFieldValue(source, field.Name);
+            if (previousValue is not null && previousValue.Equals(newValue))
+            {
+                continue;
+            }
+            
             SetFieldValue(target, newValue, field.Name);
             changes?.Add(new ValueChange(field.Name, previousValue, newValue));
         }
@@ -263,6 +268,11 @@ public static class ReflectionHelper
             
             var previousValue = GetPropertyValue(target, property.Name);
             var newValue = GetPropertyValue(source, property.Name);
+            if (previousValue is not null && previousValue.Equals(newValue))
+            {
+                continue;
+            }
+            
             SetPropertyValue(target, newValue, property.Name);
             changes?.Add(new ValueChange(property.Name, previousValue, newValue));
         }

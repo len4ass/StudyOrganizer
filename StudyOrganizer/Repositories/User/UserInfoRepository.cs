@@ -65,8 +65,21 @@ public class UserInfoRepository : IUserInfoRepository
         return await _dbContext.Users.FirstOrDefaultAsync(predicate);
     }
 
-    public UserInfo SkipAndTakeFirst(int skipCount)
+    public async Task<UserInfo> SkipAndTakeFirst(int skipCount)
     {
-        return _dbContext.Users.Skip(skipCount).Take(1).ToList()[0];
+        if (skipCount >= _dbContext.Users.Count())
+        {
+            throw new ArgumentException(
+                "Аргумент не может быть больше количества вхождений в базе данных",
+                nameof(skipCount));
+        }
+        
+        var users = await _dbContext.Users.Skip(skipCount).Take(1).ToListAsync();
+        return users[0];
+    }
+
+    public async Task<IEnumerable<UserInfo>> FilterByPredicateAsync(Expression<Func<UserInfo, bool>> predicate)
+    {
+        return await _dbContext.Users.Where(predicate).ToListAsync();
     }
 }

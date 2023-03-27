@@ -9,6 +9,10 @@ public class LinkInfo
     public string Description { get; init; }
     public string Uri { get; init; }
 
+    public LinkInfo()
+    {
+    }
+    
     public LinkInfo(string name, string description, string uri)
     {
         Name = name;

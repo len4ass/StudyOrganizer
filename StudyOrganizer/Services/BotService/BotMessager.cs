@@ -16,6 +16,25 @@ public static class BotMessager
             message, 
             parseMode: ParseMode.Html);
     }
+
+    public static async Task DeleteMessage(
+        ITelegramBotClient client,
+        Message message)
+    {
+        await client.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+    }
+
+    public static async Task EditMessage(
+        ITelegramBotClient client,
+        Message message,
+        string newContent)
+    {
+        await client.EditMessageTextAsync(
+            message.Chat.Id,
+            message.MessageId,
+            newContent,
+            parseMode: ParseMode.Html);
+    }
     
     public static async Task<Message> Reply(
         ITelegramBotClient client, 

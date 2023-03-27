@@ -1,6 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
-using Serilog;
-using Serilog.Core;
 using StudyOrganizer.Database;
 using StudyOrganizer.Repositories.User;
 using StudyOrganizer.Services.BotService;
@@ -30,8 +28,8 @@ public class CoolestOfTheDayTrigger : SimpleTrigger
         Settings = new TriggerSettings
         {
             ShouldRun = true,
-            HourUtc = 09,
-            MinuteUtc = 32,
+            HourUtc = 07,
+            MinuteUtc = 05,
             SecondUtc = 00,
             RunEveryGivenSeconds = 30
         };
@@ -48,7 +46,7 @@ public class CoolestOfTheDayTrigger : SimpleTrigger
         }
 
         var skipCount = Random.Shared.Next(0, userInfoRepository.Count());
-        var userCoolest = userInfoRepository.SkipAndTakeFirst(skipCount);
+        var userCoolest = await userInfoRepository.SkipAndTakeFirst(skipCount);
         userCoolest.CoolestOfTheDay = true;
         userCoolest.WonCOTD++;
 

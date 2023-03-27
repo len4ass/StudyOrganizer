@@ -54,4 +54,9 @@ public class DeadlineInfoRepository : IDeadlineInfoRepository
     {
         return await _dbContext.Deadlines.FirstOrDefaultAsync(predicate);
     }
+
+    public async Task<IEnumerable<DeadlineInfo>> FilterByPredicateAsync(Expression<Func<DeadlineInfo, bool>> predicate)
+    {
+        return await _dbContext.Deadlines.Where(predicate).ToListAsync();
+    }
 }

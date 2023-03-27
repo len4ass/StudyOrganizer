@@ -10,6 +10,7 @@ public interface IUserInfoRepository :
     IFindable<string, UserInfo?>, 
     IPredicateFindable<UserInfo>,
     ICountable,
-    ISkippable<UserInfo>
+    ISkippable<UserInfo>,
+    IFilterable<UserInfo>
 {
 }

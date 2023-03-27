@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace StudyOrganizer.Parsers;
 
 public static class TextParser
@@ -20,5 +22,36 @@ public static class TextParser
         }
         
         return entries;
-    } 
+    }
+
+    public static DateTimeOffset? ParseDateTime(string dateTimeString, string timeZoneId)
+    {
+        TimeZoneInfo timeZoneInfo;
+        try
+        {
+            timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return null;
+        }
+        catch (InvalidTimeZoneException)
+        {
+            return null;
+        }
+
+        return ParseDateTime(dateTimeString, timeZoneInfo);
+    }
+
+    public static DateTimeOffset? ParseDateTime(string dateTimeString, TimeZoneInfo timeZoneInfo)
+    {
+        var parsed = DateTime.TryParse(dateTimeString, new CultureInfo("ru-RU"), DateTimeStyles.None, out var dateTime);
+        if (!parsed)
+        {
+            return null;
+        }
+        
+        var utcDateTime = TimeZoneInfo.ConvertTimeToUtc(dateTime, timeZoneInfo);
+        return new DateTimeOffset(utcDateTime, TimeSpan.Zero);
+    }
 }

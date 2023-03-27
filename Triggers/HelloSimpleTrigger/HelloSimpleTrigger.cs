@@ -1,5 +1,4 @@
-﻿using StudyOrganizer.Repositories.Master;
-using StudyOrganizer.Services.BotService;
+﻿using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.TriggerService;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
@@ -18,8 +17,8 @@ public class HelloSimpleTrigger : SimpleTrigger
         Settings = new TriggerSettings
         {
             ShouldRun = true,
-            HourUtc = 09,
-            MinuteUtc = 32,
+            HourUtc = 07,
+            MinuteUtc = 05,
             SecondUtc = 0,
             RunEveryGivenSeconds = 30
         };

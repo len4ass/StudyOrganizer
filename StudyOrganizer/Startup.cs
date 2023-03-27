@@ -2,6 +2,7 @@ using System.Reflection;
 using Autofac;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using OpenAI_API;
 using Serilog;
 using StudyOrganizer.Database;
 using StudyOrganizer.Extensions;
@@ -11,10 +12,13 @@ using StudyOrganizer.Models.Trigger;
 using StudyOrganizer.Services;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Command;
+using StudyOrganizer.Services.OpenAi;
 using StudyOrganizer.Services.TriggerService;
 using StudyOrganizer.Services.TriggerService.Jobs;
+using StudyOrganizer.Services.YandexSpeechKit;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
+using YandexSpeechKitApi;
 using IContainer = Autofac.IContainer;
 
 namespace StudyOrganizer;
@@ -69,10 +73,57 @@ public class Startup
 
     private void ConfigureBot()
     {
-        var token = ProgramData.LoadFrom<Token>(_workingPaths.TokenFile);
-        ArgumentNullException.ThrowIfNull(token.BotToken);
-        _containerBuilder.RegisterInstance(new TelegramBotClient(token.BotToken))
+        var token = ProgramData.LoadFrom<Token>(_workingPaths.BotTokenFile);
+        ArgumentNullException.ThrowIfNull(token.Hash);
+        _containerBuilder.RegisterInstance(new TelegramBotClient(token.Hash))
             .As<ITelegramBotClient>().SingleInstance();
+    }
+
+    private void ConfigureNeuralNetworkApis()
+    {
+        var openAiToken = ProgramData.LoadFrom<Token>(_workingPaths.OpenApiTokenFile);
+        ArgumentNullException.ThrowIfNull(openAiToken.Hash);
+
+        if (openAiToken.Hash != string.Empty)
+        {
+            var api = new OpenAIAPI(openAiToken.Hash);
+            _containerBuilder.RegisterInstance(api)
+                .As<IOpenAIAPI>()
+                .SingleInstance();
+            
+            _containerBuilder.RegisterInstance(new OpenAiTextAnalyzer(api, _commandAggregator))
+                .As<IOpenAiTextAnalyzer>()
+                .SingleInstance();
+            
+            var yandexToken = ProgramData.LoadFrom<Token>(_workingPaths.YandexCloudApiTokenFile);
+            ArgumentNullException.ThrowIfNull(yandexToken.Hash);
+            if (yandexToken.Hash != string.Empty)
+            {
+                _containerBuilder.RegisterInstance(new SpeechKitClient(yandexToken.Hash))
+                    .As<ISpeechKitClient>()
+                    .SingleInstance();
+            }
+            else
+            {
+                _containerBuilder.RegisterInstance(new EmptySpeechKitClient())
+                    .As<ISpeechKitClient>()
+                    .SingleInstance();
+            }
+        }
+        else
+        {
+            _containerBuilder.RegisterInstance(new EmptyTextAnalyzer())
+                .As<IOpenAiTextAnalyzer>()
+                .SingleInstance();
+            _containerBuilder.RegisterInstance(new EmptySpeechKitClient())
+                .As<ISpeechKitClient>()
+                .SingleInstance();
+        }
+    }
+
+    private void ConfigureSpeechToTextApi()
+    {
+        _containerBuilder.RegisterType<YandexSpeechAnalyzer>().SingleInstance();
     }
 
     private void ConfigureSettings()
@@ -80,15 +131,6 @@ public class Startup
         var settings = ProgramData.LoadFrom<GeneralSettings>(_workingPaths.SettingsFile);
         ArgumentNullException.ThrowIfNull(settings);
         _containerBuilder.RegisterInstance(settings).SingleInstance();
-    }
-
-    private void ConfigureRepositories()
-    {
-        /*_containerBuilder.RegisterType<UserInfoRepository>().As<IUserInfoRepository>();
-        _containerBuilder.RegisterType<DeadlineInfoRepository>().As<IDeadlineInfoRepository>();
-        _containerBuilder.RegisterType<LinkInfoRepository>().As<ILinkInfoRepository>();
-        _containerBuilder.RegisterType<CommandInfoRepository>().As<ICommandInfoRepository>();
-        _containerBuilder.RegisterType<SimpleTriggerRepository>().As<ISimpleTriggerRepository>();*/
     }
 
     private void RegisterDynamicTypes<T>(string pathToLook)
@@ -167,9 +209,10 @@ public class Startup
         dbContext.Commands.Clear();
         foreach (var (_, command) in _commandAggregator)
         {
-            dbContext.Commands.Add(ReflectionHelper.Convert<BotCommand, CommandInfo>(command));
+            var commandInfo = ReflectionHelper.Convert<BotCommand, CommandInfo>(command);
+            dbContext.Commands.Add(commandInfo);
         }
-
+        
         dbContext.SaveChanges();
     }
 
@@ -229,9 +272,10 @@ public class Startup
         ConfigureAggregators();
         ConfigureLogger();
         ConfigureBot();
+        ConfigureNeuralNetworkApis();
+        ConfigureSpeechToTextApi();
         ConfigureSettings();
         ConfigureDatabasePooling();
-        ConfigureRepositories();
         RegisterDynamicTypes<BotCommand>(_workingPaths.CommandsDirectory);
         RegisterDynamicTypes<SimpleTrigger>(_workingPaths.TriggersDirectory);
         ConfigureBackgroundServices();

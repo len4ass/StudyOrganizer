@@ -2,7 +2,9 @@ namespace StudyOrganizer.Settings;
 
 public class WorkingPaths
 {
-    public string TokenFile { get; }
+    public string BotTokenFile { get; }
+    public string OpenApiTokenFile { get; }
+    public string YandexCloudApiTokenFile { get; }
     public string SettingsFile { get; }
     public string CommandsDirectory { get; }
     public string CommandsSettingsDirectory { get; }
@@ -11,7 +13,9 @@ public class WorkingPaths
     public string DataBaseFile { get; }
 
     public WorkingPaths(
-        string tokenFile, 
+        string botTokenFile,
+        string openApiTokenFile,
+        string yandexCloudApiTokenFile,
         string settingsFile, 
         string commandsDirectory, 
         string commandsSettingsDirectory, 
@@ -19,7 +23,9 @@ public class WorkingPaths
         string triggersSettingsDirectory,
         string dataBaseFile)
     {
-        TokenFile = tokenFile;
+        BotTokenFile = botTokenFile;
+        OpenApiTokenFile = openApiTokenFile;
+        YandexCloudApiTokenFile = yandexCloudApiTokenFile;
         SettingsFile = settingsFile;
         CommandsDirectory = commandsDirectory;
         CommandsSettingsDirectory = commandsSettingsDirectory;

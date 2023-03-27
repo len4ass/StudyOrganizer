@@ -29,6 +29,21 @@ public class BotCommandAggregator : IEnumerable<KeyValuePair<string, BotCommand>
         return null;
     }
 
+    public IEnumerable<Telegram.Bot.Types.BotCommand> GetConvertedCommands()
+    {
+        var convertedCommands = new List<Telegram.Bot.Types.BotCommand>();
+        foreach (var (name, command) in _commands)
+        {
+            convertedCommands.Add(new Telegram.Bot.Types.BotCommand
+            {
+                Command = command.Name,
+                Description = command.Description
+            });
+        }
+
+        return convertedCommands;
+    }
+
     public void RegisterCommand(string name, BotCommand botCommand)
     {
         _commands[name] = botCommand;

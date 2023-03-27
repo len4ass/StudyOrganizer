@@ -54,4 +54,9 @@ public class LinkInfoRepository : ILinkInfoRepository
     {
         return await _dbContext.Links.FirstOrDefaultAsync(predicate);
     }
+
+    public async Task<IEnumerable<LinkInfo>> FilterByPredicateAsync(Expression<Func<LinkInfo, bool>> predicate)
+    {
+        return await _dbContext.Links.Where(predicate).ToListAsync();
+    }
 }

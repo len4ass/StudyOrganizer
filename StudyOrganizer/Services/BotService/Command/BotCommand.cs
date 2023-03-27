@@ -1,6 +1,4 @@
-using System.ComponentModel.DataAnnotations;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.Master;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -12,12 +10,15 @@ public abstract class BotCommand
     public string Name { get; init; }
     public string Description { get; init; }
     
+    public string Format { get; init; }
+    
     public CommandSettings Settings { get; set; }
 
     protected BotCommand()
     {
         Name = "command";
         Description = "No description";
+        Format = "/command";
         Settings = new CommandSettings();
     }
 
