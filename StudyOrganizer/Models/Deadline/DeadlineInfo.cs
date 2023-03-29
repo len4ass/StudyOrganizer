@@ -54,12 +54,6 @@ public class DeadlineInfo
 
     public override int GetHashCode()
     {
-        unchecked
-        {
-            var hashCode = Name.GetHashCode();
-            hashCode = (hashCode * 397) ^ Description.GetHashCode();
-            hashCode = (hashCode * 397) ^ DateUtc.GetHashCode();
-            return hashCode;
-        }
+        return Name.GetHashCode();
     }
 }

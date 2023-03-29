@@ -8,17 +8,17 @@ using Telegram.Bot;
 using Telegram.Bot.Types;
 using BotCommand = StudyOrganizer.Services.BotService.Command.BotCommand;
 
-namespace ClearDeadlinesCommand;
+namespace ClearLinksCommand;
 
-public class ClearDeadlinesCommand : BotCommand
+public class ClearLinksCommand : BotCommand
 {
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
 
-    public ClearDeadlinesCommand(PooledDbContextFactory<MyDbContext> dbContextFactory)
+    public ClearLinksCommand(PooledDbContextFactory<MyDbContext> dbContextFactory)
     {
-        Name = "cleardeadlines";
-        Description = "Удаляет все дедлайны из базы данных.";
-        Format = "/cleardeadlines";
+        Name = "clearlinks";
+        Description = "Удаляет все ссылки из базы данных.";
+        Format = "/clearlinks";
         Settings = new CommandSettings
         {
             AccessLevel = AccessLevel.Normal
@@ -29,7 +29,7 @@ public class ClearDeadlinesCommand : BotCommand
 
     public override async Task<BotResponse> ExecuteAsync(
         ITelegramBotClient client, 
-        Message message, 
+        Message message,
         UserInfo userInfo, 
         IList<string> arguments)
     {
@@ -51,12 +51,12 @@ public class ClearDeadlinesCommand : BotCommand
                 userInfo.Handle!, 
                 userInfo.Id);
         }
-
+        
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Deadlines");
+        await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Links");
         return BotResponseFactory.Success(
             Name, 
-            "Успешно удалены все дедлайны.", 
+            "Успешно удалены все ссылки.", 
             userInfo.Handle!, 
             userInfo.Id);
     }

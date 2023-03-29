@@ -1,24 +1,25 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Text;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
+using StudyOrganizer.Repositories.Link;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using BotCommand = StudyOrganizer.Services.BotService.Command.BotCommand;
 
-namespace ClearDeadlinesCommand;
+namespace GetLinksCommand;
 
-public class ClearDeadlinesCommand : BotCommand
+public class GetLinksCommand : BotCommand
 {
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
 
-    public ClearDeadlinesCommand(PooledDbContextFactory<MyDbContext> dbContextFactory)
+    public GetLinksCommand(PooledDbContextFactory<MyDbContext> dbContextFactory)
     {
-        Name = "cleardeadlines";
-        Description = "Удаляет все дедлайны из базы данных.";
-        Format = "/cleardeadlines";
+        Name = "getlinks";
+        Description = "Получает все ссылки из базы данных.";
+        Format = "/getlinks";
         Settings = new CommandSettings
         {
             AccessLevel = AccessLevel.Normal
@@ -26,7 +27,7 @@ public class ClearDeadlinesCommand : BotCommand
         
         _dbContextFactory = dbContextFactory;
     }
-
+    
     public override async Task<BotResponse> ExecuteAsync(
         ITelegramBotClient client, 
         Message message, 
@@ -34,11 +35,11 @@ public class ClearDeadlinesCommand : BotCommand
         IList<string> arguments)
     {
         var response = await ParseResponse(userInfo, arguments);
-        await BotMessager.Reply(
-            client, 
-            message, 
+        await BotMessager.ReplyNoEmbed(
+            client,
+            message,
             response.UserResponse);
-        
+
         return response;
     }
 
@@ -52,12 +53,32 @@ public class ClearDeadlinesCommand : BotCommand
                 userInfo.Id);
         }
 
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Deadlines");
+        var userResponse = await FormatAllLinks();
         return BotResponseFactory.Success(
             Name, 
-            "Успешно удалены все дедлайны.", 
+            userResponse, 
             userInfo.Handle!, 
             userInfo.Id);
+    }
+
+    private async Task<string> FormatAllLinks()
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var linkRepository = new LinkInfoRepository(dbContext);
+
+        var links = await linkRepository.GetDataAsync();
+        if (links.Count == 0)
+        {
+            return "Ссылок не нашлось.";
+        }
+        
+        var sb = new StringBuilder("Список всех ссылок: \n\n");
+        int index = 1;
+        foreach (var link in links)
+        {
+            sb.AppendLine($"<b>{index++}</b>. {link}");
+        }
+
+        return sb.ToString();
     }
 }

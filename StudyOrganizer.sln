@@ -22,6 +22,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateDeadlineCommand", "Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YandexSpeechKitApi", "YandexSpeechKitApi\YandexSpeechKitApi.csproj", "{A47ACABD-1567-4383-80C6-6D9E71F68BB6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AddLinkCommand", "Commands\AddLinkCommand\AddLinkCommand.csproj", "{6C8D8402-31AA-492E-9B7B-FD732ECEEE34}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClearLinksCommand", "Commands\ClearLinksCommand\ClearLinksCommand.csproj", "{389D9D17-8B3C-43BD-B692-ECF0754C7372}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GetLinksCommand", "Commands\GetLinksCommand\GetLinksCommand.csproj", "{831A7D04-F60A-487A-9CB7-4183F9ACE630}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoveLinkCommand", "Commands\RemoveLinkCommand\RemoveLinkCommand.csproj", "{B14F621F-A9C5-4FEB-8AEA-CBC4EBBE507B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateLinkCommand", "Commands\UpdateLinkCommand\UpdateLinkCommand.csproj", "{2D296E8B-FEC6-4D4C-9EE1-3580F252FD9F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -72,5 +82,25 @@ Global
 		{A47ACABD-1567-4383-80C6-6D9E71F68BB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A47ACABD-1567-4383-80C6-6D9E71F68BB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A47ACABD-1567-4383-80C6-6D9E71F68BB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6C8D8402-31AA-492E-9B7B-FD732ECEEE34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C8D8402-31AA-492E-9B7B-FD732ECEEE34}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C8D8402-31AA-492E-9B7B-FD732ECEEE34}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6C8D8402-31AA-492E-9B7B-FD732ECEEE34}.Release|Any CPU.Build.0 = Release|Any CPU
+		{389D9D17-8B3C-43BD-B692-ECF0754C7372}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{389D9D17-8B3C-43BD-B692-ECF0754C7372}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{389D9D17-8B3C-43BD-B692-ECF0754C7372}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{389D9D17-8B3C-43BD-B692-ECF0754C7372}.Release|Any CPU.Build.0 = Release|Any CPU
+		{831A7D04-F60A-487A-9CB7-4183F9ACE630}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{831A7D04-F60A-487A-9CB7-4183F9ACE630}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{831A7D04-F60A-487A-9CB7-4183F9ACE630}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{831A7D04-F60A-487A-9CB7-4183F9ACE630}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B14F621F-A9C5-4FEB-8AEA-CBC4EBBE507B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B14F621F-A9C5-4FEB-8AEA-CBC4EBBE507B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B14F621F-A9C5-4FEB-8AEA-CBC4EBBE507B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B14F621F-A9C5-4FEB-8AEA-CBC4EBBE507B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D296E8B-FEC6-4D4C-9EE1-3580F252FD9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D296E8B-FEC6-4D4C-9EE1-3580F252FD9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D296E8B-FEC6-4D4C-9EE1-3580F252FD9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D296E8B-FEC6-4D4C-9EE1-3580F252FD9F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

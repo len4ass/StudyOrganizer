@@ -62,6 +62,22 @@ public static class BotResponseFactory
                 commandName));
     }
 
+    public static BotResponse InvalidUri(
+        string commandName,
+        string userHandle,
+        long userId)
+    {
+        return new BotResponse(
+            string.Format(
+                Responses.InvalidUri,
+                commandName),
+            string.Format(
+                InternalResponses.BadRequest,
+                userHandle,
+                userId,
+                commandName));
+    }
+
     public static BotResponse EntryDoesNotExist(
         string commandName, 
         string entryModelName, 

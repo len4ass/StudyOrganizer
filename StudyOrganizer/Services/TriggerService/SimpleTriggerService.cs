@@ -1,19 +1,21 @@
+using Quartz;
+using Serilog;
 using StudyOrganizer.Services.TriggerService.Jobs;
 
 namespace StudyOrganizer.Services.TriggerService;
 
 public class SimpleTriggerService : IService
 {
-    private readonly CronJobAggregator _cronJobAggregator;
+    private readonly IScheduler _scheduler;
 
-    public SimpleTriggerService(CronJobAggregator cronJobAggregator)
+    public SimpleTriggerService(IScheduler scheduler)
     {
-        _cronJobAggregator = cronJobAggregator;
+        _scheduler = scheduler;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _cronJobAggregator.QueueAllJobs(cancellationToken);
-        return Task.CompletedTask;
+        await _scheduler.Start(cancellationToken).ConfigureAwait(true);
+        Log.Logger.Information("Сервис триггеров запущен.");
     }
 }

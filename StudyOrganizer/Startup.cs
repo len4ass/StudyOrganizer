@@ -1,8 +1,10 @@
 using System.Reflection;
 using Autofac;
+using Autofac.Extras.Quartz;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using OpenAI_API;
+using Quartz;
 using Serilog;
 using StudyOrganizer.Database;
 using StudyOrganizer.Extensions;
@@ -88,7 +90,6 @@ public class Startup
         {
             var api = new OpenAIAPI(openAiToken.Hash);
             _containerBuilder.RegisterInstance(api)
-                .As<IOpenAIAPI>()
                 .SingleInstance();
             
             _containerBuilder.RegisterInstance(new OpenAiTextAnalyzer(api, _commandAggregator))
@@ -151,6 +152,24 @@ public class Startup
                     return canBeAssigned;
                 })
                 .AsSelf();
+        }
+    }
+
+    private void RegisterQuartzJobs()
+    {
+        _containerBuilder.RegisterModule(new QuartzAutofacFactoryModule()); 
+        var accordingFiles = Directory.GetFiles(_workingPaths.TriggersDirectory, "*.dll");
+        foreach (var assemblyPath in accordingFiles)
+        {
+            var assembly = Assembly.LoadFrom(assemblyPath);
+            _containerBuilder.RegisterModule(new QuartzAutofacJobsModule(assembly));
+            foreach (var type in assembly.GetTypes())
+            {
+                if (typeof(SimpleTrigger).IsAssignableFrom(type))
+                {
+                    _loadedTypes.Add(type);
+                }
+            }
         }
     }
 
@@ -218,45 +237,62 @@ public class Startup
 
     private void LoadCronJobs()
     {
+        var scheduler = _container.Resolve<IScheduler>();
         foreach (var type in _loadedTypes) 
         {
             if (type.BaseType != typeof(SimpleTrigger))
             {
                 continue;
             }
-            
-            if (_container.Resolve(type) is not SimpleTrigger trigger)
+
+            if (_container.Resolve(type) is not SimpleTrigger simpleTrigger)
             {
                 continue;
             }
-
-            Log.Logger.Information($"Загружен триггер {trigger.Name}.");
-            var settingsFile = Path.Combine(_workingPaths.TriggersSettingsDirectory, $"{trigger.Name}.json");
+            
+            Log.Logger.Information($"Загружен триггер {simpleTrigger.Name}.");
+            var settingsFile = Path.Combine(_workingPaths.TriggersSettingsDirectory, $"{simpleTrigger.Name}.json");
             if (File.Exists(settingsFile))
             {
                 var settings = ProgramData.LoadFrom<TriggerSettings>(settingsFile);
                 var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
                     settings, 
-                    trigger.Settings);
+                    simpleTrigger.Settings);
                 foreach (var change in changes)
                 {
                     Log.Logger.Information(
-                        $"Изменены настройки триггера {trigger.Name} при загрузке: " +
+                        $"Изменены настройки триггера {simpleTrigger.Name} при загрузке: " +
                         $"значение {change.Name} изменено с {change.PreviousValue} на {change.CurrentValue}");
                 }
             }
 
-            _cronJobAggregator.RegisterJob(trigger.Name, new CronJob(trigger));
+            var job = JobBuilder.Create(type)
+                .WithIdentity(simpleTrigger.Name, "worker_service")
+                .StoreDurably()
+                .Build();
+            var trigger = QuartzExtensions.BuildTrigger(simpleTrigger);
+            
+            scheduler.ScheduleJob(job, trigger).GetAwaiter().GetResult();
+            if (!simpleTrigger.Settings.ShouldRun)
+            {
+                scheduler.PauseTrigger(trigger.Key).GetAwaiter().GetResult();
+            }
+            
+            _cronJobAggregator.RegisterJob(simpleTrigger.Name, new CronJob
+            {
+                LoadedTrigger = simpleTrigger,
+                JobKey = job.Key,
+                TriggerKey = trigger.Key
+            });
         }
-        
-        
+
         var dbContextFactory = _container.Resolve<PooledDbContextFactory<MyDbContext>>();
         using var dbContext = dbContextFactory.CreateDbContext();
         dbContext.Triggers.Clear();
-        foreach (var (_, job) in _cronJobAggregator)
+        foreach (var (_, cronJob) in _cronJobAggregator)
         {
             dbContext.Triggers.Add(
-                ReflectionHelper.Convert<SimpleTrigger, TriggerInfo>(job.GetInternalTrigger()));
+                ReflectionHelper.Convert<SimpleTrigger, TriggerInfo>(cronJob.LoadedTrigger));
         }
 
         dbContext.SaveChanges();
@@ -277,7 +313,7 @@ public class Startup
         ConfigureSettings();
         ConfigureDatabasePooling();
         RegisterDynamicTypes<BotCommand>(_workingPaths.CommandsDirectory);
-        RegisterDynamicTypes<SimpleTrigger>(_workingPaths.TriggersDirectory);
+        RegisterQuartzJobs();
         ConfigureBackgroundServices();
         BuildContainer();
         LoadCommands();

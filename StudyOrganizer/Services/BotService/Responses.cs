@@ -14,4 +14,6 @@ public static class Responses
 
     public const string FailedAnalizingText =
         "Не удалось использовать команду <b>{0}</b>: не удалось проанализировать ваше сообщение";
+
+    public const string InvalidUri = "Не удалось использовать команду <b>{0}</b>: указана некорректная ссылка.";
 }

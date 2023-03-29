@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+using Quartz;
 using StudyOrganizer.Database;
 using StudyOrganizer.Repositories.User;
 using StudyOrganizer.Services.BotService;
@@ -28,14 +29,14 @@ public class CoolestOfTheDayTrigger : SimpleTrigger
         Settings = new TriggerSettings
         {
             ShouldRun = true,
-            HourUtc = 07,
-            MinuteUtc = 05,
+            HourUtc = 12,
+            MinuteUtc = 00,
             SecondUtc = 00,
-            RunEveryGivenSeconds = 30
+            RecurringType = SimpleTriggerRecurringType.Daily
         };
     }
-    
-    public override async Task ExecuteAsync()
+
+    public override async Task Execute(IJobExecutionContext context)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         var userInfoRepository = new UserInfoRepository(dbContext);

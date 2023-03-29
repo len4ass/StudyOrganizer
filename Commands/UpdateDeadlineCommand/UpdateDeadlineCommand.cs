@@ -67,9 +67,9 @@ public class UpdateDeadlineCommand : BotCommand
                 userInfo.Id);
         }
 
-        string name = arguments[0];
-        string dateTimeString = match.Value;
-        string description = string.Join(' ', fullCommand
+        var name = arguments[0];
+        var dateTimeString = match.Value;
+        var description = string.Join(' ', fullCommand
             .Replace(name, "")
             .Replace(dateTimeString, "")
             .Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim();

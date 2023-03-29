@@ -1,27 +1,28 @@
 using System.Collections;
+using Quartz;
 
 namespace StudyOrganizer.Services.TriggerService.Jobs;
 
-public class CronJobAggregator : IEnumerable<KeyValuePair<string, IJob>>
+public class CronJobAggregator : IEnumerable<KeyValuePair<string, CronJob>>
 {
-    private readonly IDictionary<string, IJob> _jobs;
+    private readonly IDictionary<string, CronJob> _jobs;
 
     public CronJobAggregator()
     {
-        _jobs = new Dictionary<string, IJob>();
+        _jobs = new Dictionary<string, CronJob>();
     }
     
-    public CronJobAggregator(IDictionary<string, IJob> jobs)
+    public CronJobAggregator(IDictionary<string, CronJob> jobs)
     {
         _jobs = jobs;
     }
 
-    public void RegisterJob(string name, IJob job)
+    public void RegisterJob(string name, CronJob job)
     {
         _jobs[name] = job;
     }
 
-    public IJob? JobExists(string name)
+    public CronJob? JobExists(string name)
     {
         if (_jobs.ContainsKey(name))
         {
@@ -30,16 +31,8 @@ public class CronJobAggregator : IEnumerable<KeyValuePair<string, IJob>>
 
         return null;
     }
-    
-    public void QueueAllJobs(CancellationToken cancellationToken)
-    {
-        foreach (var (_, job) in _jobs)
-        {
-            job.Start(cancellationToken);
-        }
-    }
 
-    public IEnumerator<KeyValuePair<string, IJob>> GetEnumerator()
+    public IEnumerator<KeyValuePair<string, CronJob>> GetEnumerator()
     {
         return _jobs.GetEnumerator();
     }

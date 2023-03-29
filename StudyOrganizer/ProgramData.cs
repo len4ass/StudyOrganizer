@@ -1,6 +1,5 @@
 using StudyOrganizer.Helper;
 using StudyOrganizer.Helper.Serializers;
-using StudyOrganizer.Settings;
 
 namespace StudyOrganizer;
 
@@ -14,7 +13,6 @@ public static class ProgramData
         ArgumentNullException.ThrowIfNull(data);
         return data;
     }
-
     
     public static void SaveTo<T>(string path, T data)
     {

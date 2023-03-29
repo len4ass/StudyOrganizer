@@ -1,8 +1,9 @@
+using Quartz;
 using StudyOrganizer.Settings;
 
 namespace StudyOrganizer.Services.TriggerService;
 
-public abstract class SimpleTrigger
+public abstract class SimpleTrigger : IJob
 {
     public string Name { get; init; }
     public string Description { get; init; }
@@ -16,5 +17,5 @@ public abstract class SimpleTrigger
         Settings = new TriggerSettings();
     }
 
-    public abstract Task ExecuteAsync();
+    public abstract Task Execute(IJobExecutionContext context);
 }

@@ -49,7 +49,8 @@ public class BotService : IService
         };
 
         var bot = await _client.GetMeAsync(cancellationToken);
-        await _client.SetMyCommandsAsync(_botCommandAggregator.GetConvertedCommands());
+        await _client.SetMyCommandsAsync(_botCommandAggregator.GetConvertedCommands(), 
+            cancellationToken: cancellationToken);
         StartReceiving(receiverOptions, cancellationToken);
         
         Log.Logger.Information($"Бот {bot.Username} ({bot.Id}) успешно начал поллинг.");
@@ -224,6 +225,8 @@ public class BotService : IService
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         var userInfoRepository = new UserInfoRepository(dbContext);
         var user = await userInfoRepository.FindAsync(telegramUser.Id);
+        await dbContext.DisposeAsync();
+        
         if (user is null)
         {
             Log.Logger.Information(

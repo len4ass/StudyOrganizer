@@ -44,9 +44,6 @@ internal static class Program
             Path.Combine(AppContext.BaseDirectory, args[7]),
             Path.Combine(AppContext.BaseDirectory, args[8]));
 
-        /*var runner = new ProgramRunner(workingPaths);
-        await runner.Run(new CancellationTokenSource().Token);*/
-        
         var services = new Startup(workingPaths, new ContainerBuilder()).ConfigureServices();
         var cts = new CancellationTokenSource();
         foreach (var service in services)

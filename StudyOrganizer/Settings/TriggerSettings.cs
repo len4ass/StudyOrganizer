@@ -1,13 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using StudyOrganizer.Services.TriggerService;
 
 namespace StudyOrganizer.Settings;
 
 [Owned]
 public sealed class TriggerSettings
 {
-    public bool ShouldRun { get; set; } 
-    public int HourUtc { get; init; }
-    public int MinuteUtc { get; init; }
-    public int SecondUtc { get; init; }
-    public int RunEveryGivenSeconds { get; init; }
+    public bool ShouldRun { get; set; }
+    public SimpleTriggerRecurringType RecurringType { get; set; }
+    public string DayOfWeek { get; set; }
+    public int HourUtc { get; set; }
+    public int MinuteUtc { get; set; }
+    public int SecondUtc { get; set; }
 }

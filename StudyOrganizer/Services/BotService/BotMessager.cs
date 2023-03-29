@@ -35,6 +35,19 @@ public static class BotMessager
             newContent,
             parseMode: ParseMode.Html);
     }
+
+    public static async Task<Message> ReplyNoEmbed(
+        ITelegramBotClient client,
+        Message message,
+        string response)
+    {
+        return await client.SendTextMessageAsync(
+            message.Chat.Id,
+            response,
+            replyToMessageId: message.MessageId,
+            parseMode: ParseMode.Html,
+            disableWebPagePreview: true);
+    }
     
     public static async Task<Message> Reply(
         ITelegramBotClient client, 

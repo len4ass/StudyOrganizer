@@ -1,4 +1,5 @@
-﻿using StudyOrganizer.Services.BotService;
+﻿using Quartz;
+using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.TriggerService;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
@@ -20,11 +21,11 @@ public class HelloSimpleTrigger : SimpleTrigger
             HourUtc = 07,
             MinuteUtc = 05,
             SecondUtc = 0,
-            RunEveryGivenSeconds = 30
+            RecurringType = SimpleTriggerRecurringType.EveryMinute
         };
     }
 
-    public override async Task ExecuteAsync()
+    public override async Task Execute(IJobExecutionContext context)
     {
         await BotMessager.Send(_client, _settings.MainChatId, "hello from cronjob");
     }
