@@ -6,9 +6,6 @@ public class EmptySpeechKitClient : ISpeechKitClient
         byte[] byteMedia, 
         CancellationToken cancellationToken = default)
     {
-        return await Task.FromResult(new SpeechToTextResponse
-        {
-        
-        });
+        return await Task.FromResult(new SpeechToTextResponse());
     }
 }

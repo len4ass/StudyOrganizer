@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Mapster;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Serilog;
 using StudyOrganizer.Database;
@@ -15,7 +16,7 @@ public class BotCommandObserverService : IService
     private FileSystemWatcher _observer;
 
     public BotCommandObserverService(
-        BotCommandAggregator botCommandAggregator, 
+        BotCommandAggregator botCommandAggregator,
         PooledDbContextFactory<MyDbContext> dbContextFactory,
         WorkingPaths workingPaths)
     {
@@ -55,30 +56,32 @@ public class BotCommandObserverService : IService
         CommandSettings settings;
         try
         {
-            settings = ProgramData.LoadFrom<CommandSettings>(path);
+            settings = ProgramData.LoadFromAsync<CommandSettings>(path)
+                .GetAwaiter()
+                .GetResult();
         }
         catch (JsonException e)
         {
-            Log.Logger.Error(e, 
+            Log.Logger.Error(
+                e,
                 $"Произошла ошибка при попытке получения новых настроек команды {command.Name}!");
             return;
         }
         catch (ArgumentNullException e)
         {
-            Log.Logger.Error(e, $"Не удалось обновить триггер {command.Name}!");
+            Log.Logger.Error(e, $"Не удалось обновить команду {command.Name}!");
             return;
         }
 
         using var dbContext = _dbContextFactory.CreateDbContext();
         var commandInDatabase = dbContext.Commands.Find(command.Name);
-        var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
+        settings.Adapt(command.Settings);
+        settings.Adapt(commandInDatabase?.Settings);
+        var changes = ReflectionHelper.FindDifferencesBetweenObjects(
             settings,
             command.Settings);
-        ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
-            settings, 
-            commandInDatabase?.Settings);
         dbContext.SaveChanges();
-        
+
         foreach (var change in changes)
         {
             Log.Logger.Information(
@@ -86,7 +89,7 @@ public class BotCommandObserverService : IService
                 $"значение {change.Name} изменено с {change.PreviousValue} на {change.CurrentValue}");
         }
     }
-    
+
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
         if (e.ChangeType != WatcherChangeTypes.Changed)
@@ -98,7 +101,7 @@ public class BotCommandObserverService : IService
         {
             return;
         }
-        
+
         Log.Logger.Information($"Замечено изменение по пути {e.FullPath}.");
         UpdateBotCommandInfo(e.FullPath);
     }

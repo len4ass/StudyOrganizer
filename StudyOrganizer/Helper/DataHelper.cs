@@ -11,6 +11,16 @@ public class DataHelper<T>
         _serializer = serializer;
     }
 
+    public async Task<T?> LoadDataAsync()
+    {
+        return await _serializer.DeserializeAsync();
+    }
+
+    public async Task SaveDataAsync(T data)
+    {
+        await _serializer.SerializeAsync(data);
+    }
+
     public T? LoadData()
     {
         return _serializer.Deserialize();

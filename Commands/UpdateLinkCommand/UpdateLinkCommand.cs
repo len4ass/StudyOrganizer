@@ -1,9 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
-using StudyOrganizer.Models.Link;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.Link;
 using StudyOrganizer.Services.BotService;
+using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -11,7 +10,7 @@ using BotCommand = StudyOrganizer.Services.BotService.Command.BotCommand;
 
 namespace UpdateLinkCommand;
 
-public class UpdateLinkCommand : BotCommand
+public sealed class UpdateLinkCommand : BotCommand
 {
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
 
@@ -24,74 +23,62 @@ public class UpdateLinkCommand : BotCommand
         {
             AccessLevel = AccessLevel.Normal
         };
-        
+
         _dbContextFactory = dbContextFactory;
     }
 
-    public override async Task<BotResponse> ExecuteAsync(
-        ITelegramBotClient client, 
-        Message message, 
-        UserInfo userInfo, 
+    public override async Task<UserResponse> ExecuteAsync(
+        ITelegramBotClient client,
+        Message message,
+        UserInfo userInfo,
         IList<string> arguments)
     {
-        var response = await ParseResponse(userInfo, arguments);
+        var response = await ParseResponse(arguments);
         await BotMessager.ReplyNoEmbed(
             client,
             message,
-            response.UserResponse);
+            response.Response);
 
         return response;
     }
 
-    private async Task<BotResponse> ParseResponse(UserInfo userInfo, IList<string> arguments)
+    private async Task<UserResponse> ParseResponse(IList<string> arguments)
     {
         if (arguments.Count < 2)
         {
-            return BotResponseFactory.NotEnoughArguments(
-                Name,
-                userInfo.Handle!,
-                userInfo.Id);
+            return UserResponseFactory.NotEnoughArguments(Name);
         }
 
         var name = arguments[0];
         var uri = arguments[1];
         if (!Uri.IsWellFormedUriString(uri, UriKind.Absolute))
         {
-            return BotResponseFactory.FailedParsing(
-                Name,
-                userInfo.Handle!,
-                userInfo.Id);
+            return UserResponseFactory.FailedParsing(Name);
         }
 
-        string description = arguments.Count == 2 
-            ? "Нет описания" 
+        var description = arguments.Count == 2
+            ? "Нет описания"
             : string.Join(' ', arguments.Skip(2));
 
         return await UpdateLinkInDatabase(
-            userInfo, 
-            name, 
-            uri, 
+            name,
+            uri,
             description);
     }
 
-    private async Task<BotResponse> UpdateLinkInDatabase(
-        UserInfo userInfo, 
-        string name, 
-        string newUri, 
+    private async Task<UserResponse> UpdateLinkInDatabase(
+        string name,
+        string newUri,
         string newDescription)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var linkRepository = new LinkInfoRepository(dbContext);
-
-        var link = await linkRepository.FindAsync(name);
+        var link = await dbContext.Links.FindAsync(name);
         if (link is null)
         {
-            return BotResponseFactory.EntryDoesNotExist(
-                Name, 
-                "ссылка", 
-                name, 
-                userInfo.Handle!, 
-                userInfo.Id);
+            return UserResponseFactory.EntryDoesNotExist(
+                Name,
+                "ссылка",
+                name);
         }
 
         var previousUri = link.Uri;
@@ -99,14 +86,11 @@ public class UpdateLinkCommand : BotCommand
 
         link.Uri = newUri;
         link.Description = newDescription;
-        await linkRepository.SaveAsync();
-        
-        return BotResponseFactory.Success(
-            Name, 
+        await dbContext.SaveChangesAsync();
+
+        return UserResponseFactory.Success(
             $"Ссылка <b>{name}</b> изменена: \n" +
             $"URI изменено с {previousUri} на {newUri}.\n" +
-            $"Описание изменено с '{previousDescription}' на '{newDescription}'.", 
-            userInfo.Handle!, 
-            userInfo.Id);
+            $"Описание изменено с '{previousDescription}' на '{newDescription}'.");
     }
 }

@@ -1,23 +1,22 @@
 using System.Text;
-using OpenAI_API;
-using OpenAI_API.Chat;
-using OpenAI_API.Completions;
-using OpenAI_API.Models;
+using OpenAI;
+using OpenAI.Chat;
+using OpenAI.Models;
 using StudyOrganizer.Services.BotService.Command;
 
-namespace StudyOrganizer.Services.OpenAi;
+namespace StudyOrganizer.Services.OpenAi.TextToCommand;
 
 public class OpenAiTextAnalyzer : IOpenAiTextAnalyzer
 {
-    private readonly OpenAIAPI _openAiApi;
+    private readonly OpenAIClient _api;
     private readonly BotCommandAggregator _commands;
 
     private volatile bool _isFirstMessage = true;
     private string _systemMessage = default!;
 
-    public OpenAiTextAnalyzer(OpenAIAPI openAiApi, BotCommandAggregator commands)
+    public OpenAiTextAnalyzer(OpenAIClient api, BotCommandAggregator commands)
     {
-        _openAiApi = openAiApi;
+        _api = api;
         _commands = commands;
     }
 
@@ -30,10 +29,10 @@ public class OpenAiTextAnalyzer : IOpenAiTextAnalyzer
             {
                 continue;
             }
-            
+
             sb.AppendLine(command.Format);
         }
-        
+
         sb.AppendLine("На сообщение найди корректную команду и преобразуй сообщение в эту команду.");
         sb.AppendLine("Не пиши в ответе ничего кроме команды, отвечай максимально кратко.");
         sb.AppendLine("Если ни одна команда не подходит, то ответь пустой строкой.");
@@ -51,24 +50,22 @@ public class OpenAiTextAnalyzer : IOpenAiTextAnalyzer
             _isFirstMessage = false;
             CreateSystemMessage();
         }
-        
-        string request = $"{_systemMessage} \nСообщение: '{text}'";
-        var result = await _openAiApi.Chat.CreateChatCompletionAsync(
-            new ChatRequest
-            {
-                Model = Model.ChatGPTTurbo,
-                Temperature = 0,
-                TopP = 1,
-                FrequencyPenalty = 0.2,
-                PresencePenalty = 0,
-                MaxTokens = 50,
-                Messages = new ChatMessage[]
-                {
-                    new ChatMessage(ChatMessageRole.User, request)
-                }
-            });
 
-        var command = result.ToString();
+        var request = $"{_systemMessage} \nСообщение: '{text}'";
+        var result = await _api.ChatEndpoint.GetCompletionAsync(
+            new ChatRequest(
+                new[]
+                {
+                    new ChatPrompt("user", request)
+                },
+                Model.GPT3_5_Turbo,
+                0,
+                1,
+                frequencyPenalty: 0.2,
+                presencePenalty: 0,
+                maxTokens: 50));
+
+        var command = result.FirstChoice.ToString();
         if (command.Trim() == string.Empty || command.Trim() == "/")
         {
             return new OpenAiResponse

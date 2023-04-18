@@ -1,5 +1,6 @@
 using System.Collections;
 using StudyOrganizer.Models.User;
+using StudyOrganizer.Services.BotService.Responses;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
@@ -13,7 +14,7 @@ public class BotCommandAggregator : IEnumerable<KeyValuePair<string, BotCommand>
     {
         _commands = new Dictionary<string, BotCommand>();
     }
-    
+
     public BotCommandAggregator(IDictionary<string, BotCommand> commands)
     {
         _commands = commands;
@@ -34,11 +35,12 @@ public class BotCommandAggregator : IEnumerable<KeyValuePair<string, BotCommand>
         var convertedCommands = new List<Telegram.Bot.Types.BotCommand>();
         foreach (var (name, command) in _commands)
         {
-            convertedCommands.Add(new Telegram.Bot.Types.BotCommand
-            {
-                Command = command.Name,
-                Description = command.Description
-            });
+            convertedCommands.Add(
+                new Telegram.Bot.Types.BotCommand
+                {
+                    Command = command.Name,
+                    Description = command.Description
+                });
         }
 
         return convertedCommands;
@@ -59,43 +61,51 @@ public class BotCommandAggregator : IEnumerable<KeyValuePair<string, BotCommand>
         var command = CommandExists(commandName);
         if (command is null)
         {
-            var responseCommandDoesNotExist = string.Format(Responses.CommandDoesNotExist, commandName);
+            var responseCommandDoesNotExist = UserResponseFactory.CommandDoesNotExist(commandName);
             await BotMessager.Reply(
-                client, 
-                message, 
-                responseCommandDoesNotExist);
+                client,
+                message,
+                responseCommandDoesNotExist.Response);
 
-            return new BotResponse(
-                responseCommandDoesNotExist,
-                string.Format(
-                    InternalResponses.CommandDoesNotExist,
-                    userInfo.Handle,
-                    userInfo.Id,
-                    commandName));
+            return new BotResponse
+            {
+                User = userInfo.Handle ?? userInfo.Id.ToString(),
+                CommandName = commandName,
+                CommandArguments = arguments,
+                UserResponse = responseCommandDoesNotExist
+            };
         }
 
         if (userInfo.Level < command.Settings.AccessLevel)
         {
-            var responseAccessDenied = string.Format(Responses.AccessDenied, command.Name);
+            var responseAccessDenied = UserResponseFactory.AccessDenied(command.Name);
             await BotMessager.Reply(
-                client, 
-                message, 
-                responseAccessDenied);
+                client,
+                message,
+                responseAccessDenied.Response);
 
-            return new BotResponse(
-                responseAccessDenied,
-                string.Format(
-                    InternalResponses.AccessDenied,
-                    userInfo.Handle,
-                    userInfo.Id,
-                    command.Name));
+            return new BotResponse
+            {
+                User = userInfo.Handle ?? userInfo.Id.ToString(),
+                CommandName = commandName,
+                CommandArguments = arguments,
+                UserResponse = responseAccessDenied
+            };
         }
 
-        return await command.ExecuteAsync(
+        var response = await command.ExecuteAsync(
             client,
             message,
             userInfo,
             arguments);
+
+        return new BotResponse
+        {
+            User = userInfo.Handle ?? userInfo.Id.ToString(),
+            CommandName = commandName,
+            CommandArguments = arguments,
+            UserResponse = response
+        };
     }
 
     public IEnumerator<KeyValuePair<string, BotCommand>> GetEnumerator()

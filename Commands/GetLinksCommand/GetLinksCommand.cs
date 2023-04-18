@@ -4,6 +4,7 @@ using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Repositories.Link;
 using StudyOrganizer.Services.BotService;
+using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -11,7 +12,7 @@ using BotCommand = StudyOrganizer.Services.BotService.Command.BotCommand;
 
 namespace GetLinksCommand;
 
-public class GetLinksCommand : BotCommand
+public sealed class GetLinksCommand : BotCommand
 {
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
 
@@ -24,41 +25,34 @@ public class GetLinksCommand : BotCommand
         {
             AccessLevel = AccessLevel.Normal
         };
-        
+
         _dbContextFactory = dbContextFactory;
     }
-    
-    public override async Task<BotResponse> ExecuteAsync(
-        ITelegramBotClient client, 
-        Message message, 
-        UserInfo userInfo, 
+
+    public override async Task<UserResponse> ExecuteAsync(
+        ITelegramBotClient client,
+        Message message,
+        UserInfo userInfo,
         IList<string> arguments)
     {
-        var response = await ParseResponse(userInfo, arguments);
+        var response = await ParseResponse(arguments);
         await BotMessager.ReplyNoEmbed(
             client,
             message,
-            response.UserResponse);
+            response.Response);
 
         return response;
     }
 
-    private async Task<BotResponse> ParseResponse(UserInfo userInfo, IList<string> arguments)
+    private async Task<UserResponse> ParseResponse(IList<string> arguments)
     {
         if (arguments.Count > 0)
         {
-            return BotResponseFactory.ArgumentLimitExceeded(
-                Name, 
-                userInfo.Handle!, 
-                userInfo.Id);
+            return UserResponseFactory.ArgumentLimitExceeded(Name);
         }
 
         var userResponse = await FormatAllLinks();
-        return BotResponseFactory.Success(
-            Name, 
-            userResponse, 
-            userInfo.Handle!, 
-            userInfo.Id);
+        return UserResponseFactory.Success(userResponse);
     }
 
     private async Task<string> FormatAllLinks()
@@ -71,12 +65,11 @@ public class GetLinksCommand : BotCommand
         {
             return "Ссылок не нашлось.";
         }
-        
+
         var sb = new StringBuilder("Список всех ссылок: \n\n");
-        int index = 1;
-        foreach (var link in links)
+        for (var i = 0; i < links.Count; i++)
         {
-            sb.AppendLine($"<b>{index++}</b>. {link}");
+            sb.AppendLine($"<b>{i + 1}</b>. {links[i]}");
         }
 
         return sb.ToString();

@@ -1,4 +1,5 @@
 using StudyOrganizer.Models.User;
+using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -9,9 +10,8 @@ public abstract class BotCommand
 {
     public string Name { get; init; }
     public string Description { get; init; }
-    
     public string Format { get; init; }
-    
+    public string OtherInfo { get; init; }
     public CommandSettings Settings { get; set; }
 
     protected BotCommand()
@@ -19,15 +19,16 @@ public abstract class BotCommand
         Name = "command";
         Description = "No description";
         Format = "/command";
+        OtherInfo = "";
         Settings = new CommandSettings();
     }
 
-    public abstract Task<BotResponse> ExecuteAsync(
+    public abstract Task<UserResponse> ExecuteAsync(
         ITelegramBotClient client,
         Message message,
         UserInfo userInfo,
         IList<string> arguments);
-    
+
     public override string ToString()
     {
         return $"/{Name}";
@@ -39,7 +40,7 @@ public abstract class BotCommand
         {
             return false;
         }
-        
+
         return Equals(command);
     }
 

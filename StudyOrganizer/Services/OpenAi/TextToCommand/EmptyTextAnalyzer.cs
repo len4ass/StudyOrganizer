@@ -1,4 +1,4 @@
-namespace StudyOrganizer.Services.OpenAi;
+namespace StudyOrganizer.Services.OpenAi.TextToCommand;
 
 public class EmptyTextAnalyzer : IOpenAiTextAnalyzer
 {

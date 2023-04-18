@@ -1,4 +1,7 @@
+using System.ComponentModel;
 using System.Reflection;
+using Mapster;
+using StudyOrganizer.Models.User;
 
 namespace StudyOrganizer.Loaders;
 
@@ -9,7 +12,7 @@ public static class ReflectionHelper
         var properPath = Path.GetFullPath(path);
         var fileName = Path.GetFileNameWithoutExtension(properPath);
         var assembly = Assembly.LoadFrom(properPath);
-        
+
         return assembly.GetType($"{fileName}.{fileName}");
     }
 
@@ -47,26 +50,74 @@ public static class ReflectionHelper
 
         return null;
     }
-    
+
     public static FieldInfo[] GetFields(Type type)
     {
-        return type.GetFields(BindingFlags.Public | 
-                       BindingFlags.NonPublic |
-                       BindingFlags.Instance);
+        return type.GetFields(
+            BindingFlags.Public |
+            BindingFlags.NonPublic |
+            BindingFlags.Instance);
     }
 
     public static PropertyInfo[] GetProperties(Type type)
     {
-        return type.GetProperties(BindingFlags.Public |
-                                  BindingFlags.NonPublic |
-                                  BindingFlags.Instance);
+        return type.GetProperties(
+            BindingFlags.Public |
+            BindingFlags.NonPublic |
+            BindingFlags.Instance);
+    }
+
+    public static IList<string> GetPropertyNames(Type type)
+    {
+        var properties = GetProperties(type);
+
+        return properties.Select(property => property.Name)
+            .ToList();
+    }
+
+    public static void ParseAndMapKeyValuePairsOnObject<T>(T obj, IDictionary<string, string> propertyNameValuePairs)
+    {
+        var properties = GetProperties(typeof(T));
+        foreach (var property in properties)
+        {
+            if (!propertyNameValuePairs.ContainsKey(property.Name))
+            {
+                continue;
+            }
+
+            var converter = TypeDescriptor.GetConverter(property.PropertyType);
+            var result = converter.ConvertFrom(propertyNameValuePairs[property.Name]);
+            if (result is null)
+            {
+                continue;
+            }
+
+            property.SetValue(obj, result);
+        }
+    }
+
+    public static IList<string> GetPropertyNamesWithValues<T>(T obj)
+    {
+        var properties = GetProperties(typeof(T));
+
+        return properties.Select(property => $"{property.Name}: {property.GetValue(obj)}")
+            .ToList();
+    }
+
+    public static IList<string> GetPropertyNamesWithTypes(Type type)
+    {
+        var properties = GetProperties(type);
+
+        return properties
+            .Select(property => $"{property.Name} ({property.PropertyType.Name})")
+            .ToList();
     }
 
     public static object? GetStaticFieldValue(Type type, string fieldName)
     {
         var fields = GetFields(type);
         object? value = null;
-        bool foundField = false;
+        var foundField = false;
         foreach (var field in fields)
         {
             if (field.Name == fieldName)
@@ -76,11 +127,10 @@ public static class ReflectionHelper
                 break;
             }
         }
-        
+
         if (!foundField)
         {
-            throw new MissingFieldException(
-                $"Поле с именем {fieldName} у типа {type.Name} не найдено");
+            throw new MissingFieldException($"Поле с именем {fieldName} у типа {type.Name} не найдено");
         }
 
         return value;
@@ -95,7 +145,7 @@ public static class ReflectionHelper
 
         var properties = GetProperties(instance.GetType());
         object? value = null;
-        bool foundProperty = false;
+        var foundProperty = false;
         foreach (var property in properties)
         {
             if (property.Name == propertyName)
@@ -115,7 +165,10 @@ public static class ReflectionHelper
         return value;
     }
 
-    public static void SetPropertyValue(object? instance, object? value, string propertyName)
+    public static void SetPropertyValue(
+        object? instance,
+        object? value,
+        string propertyName)
     {
         if (instance is null)
         {
@@ -132,7 +185,7 @@ public static class ReflectionHelper
             }
         }
     }
-    
+
     public static object? GetFieldValue(object? instance, string fieldName)
     {
         if (instance is null)
@@ -140,12 +193,14 @@ public static class ReflectionHelper
             throw new ArgumentNullException(nameof(instance), "Переданный объект null.");
         }
 
-        var fields = instance.GetType().GetFields(BindingFlags.Public | 
-                                                  BindingFlags.NonPublic |
-                                                  BindingFlags.Instance);
+        var fields = instance.GetType()
+            .GetFields(
+                BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Instance);
 
         object? value = null;
-        bool foundField = false;
+        var foundField = false;
         foreach (var field in fields)
         {
             if (field.Name == fieldName)
@@ -158,14 +213,16 @@ public static class ReflectionHelper
 
         if (!foundField)
         {
-            throw new MissingFieldException(
-                $"Поле с именем {fieldName} у типа {instance.GetType().Name} не найдено");
+            throw new MissingFieldException($"Поле с именем {fieldName} у типа {instance.GetType().Name} не найдено");
         }
 
         return value;
     }
 
-    public static void SetFieldValue(object? instance, object? value, string fieldName)
+    public static void SetFieldValue(
+        object? instance,
+        object? value,
+        string fieldName)
     {
         if (instance is null)
         {
@@ -182,25 +239,24 @@ public static class ReflectionHelper
             }
         }
     }
-    
+
     public static MethodInfo GetMethodFromType(
-        Type type, 
+        Type type,
         string methodName,
         Type[] methodPassingTypes)
     {
         var methodInfo = type.GetMethod(methodName, methodPassingTypes);
         if (methodInfo is null)
         {
-            throw new MissingMethodException(
-                $"Метод {methodName} отсутствует в классе {type.Name}.");
+            throw new MissingMethodException($"Метод {methodName} отсутствует в классе {type.Name}.");
         }
 
         return methodInfo;
     }
 
     public static void UpdateFields(
-        object source, 
-        object target, 
+        object source,
+        object target,
         IList<ValueChange>? changes = null)
     {
         var fields = GetFields(source.GetType());
@@ -225,22 +281,29 @@ public static class ReflectionHelper
             {
                 continue;
             }
-            
+
             var previousValue = GetFieldValue(target, field.Name);
             var newValue = GetFieldValue(source, field.Name);
             if (previousValue is not null && previousValue.Equals(newValue))
             {
                 continue;
             }
-            
-            SetFieldValue(target, newValue, field.Name);
-            changes?.Add(new ValueChange(field.Name, previousValue, newValue));
+
+            SetFieldValue(
+                target,
+                newValue,
+                field.Name);
+            changes?.Add(
+                new ValueChange(
+                    field.Name,
+                    previousValue,
+                    newValue));
         }
     }
 
     public static void UpdateProperties(
-        object source, 
-        object target, 
+        object source,
+        object target,
         IList<ValueChange>? changes = null)
     {
         var properties = GetProperties(source.GetType());
@@ -265,22 +328,167 @@ public static class ReflectionHelper
             {
                 continue;
             }
-            
+
             var previousValue = GetPropertyValue(target, property.Name);
             var newValue = GetPropertyValue(source, property.Name);
             if (previousValue is not null && previousValue.Equals(newValue))
             {
                 continue;
             }
-            
-            SetPropertyValue(target, newValue, property.Name);
-            changes?.Add(new ValueChange(property.Name, previousValue, newValue));
+
+            SetPropertyValue(
+                target,
+                newValue,
+                property.Name);
+            changes?.Add(
+                new ValueChange(
+                    property.Name,
+                    previousValue,
+                    newValue));
         }
     }
 
+    public static void FindPropertyDifference(
+        object firstObj,
+        object secondObj,
+        IList<ValueChange> differences)
+    {
+        var properties = GetProperties(firstObj.GetType());
+        foreach (var property in properties)
+        {
+            PropertyInfo? propertyInTarget;
+            try
+            {
+                propertyInTarget = FindProperty(secondObj, property.Name);
+            }
+            catch (ArgumentNullException)
+            {
+                continue;
+            }
+
+            if (propertyInTarget is null)
+            {
+                continue;
+            }
+
+            if (property.GetType() != propertyInTarget.GetType())
+            {
+                continue;
+            }
+
+            var previousValue = GetPropertyValue(secondObj, property.Name);
+            var newValue = GetPropertyValue(firstObj, property.Name);
+            if (previousValue is not null && previousValue.Equals(newValue))
+            {
+                continue;
+            }
+
+            differences?.Add(
+                new ValueChange(
+                    property.Name,
+                    previousValue,
+                    newValue));
+        }
+    }
+
+    public static IList<ValueChange> FindPropertyDifferencesBetweenObjectsOfTheSameType<T>(T obj1, T obj2)
+    {
+        var changes = new List<ValueChange>();
+        var properties = GetProperties(obj1!.GetType());
+        foreach (var property in properties)
+        {
+            var obj1Value = property.GetValue(obj1);
+            var obj2Value = property.GetValue(obj2);
+            if (!Equals(obj1Value, obj2Value))
+            {
+                changes.Add(
+                    new ValueChange(
+                        property.Name,
+                        obj1Value,
+                        obj2Value));
+            }
+        }
+
+        return changes;
+    }
+
+    public static void FindFieldDifference(
+        object firstObj,
+        object secondObj,
+        IList<ValueChange> differences)
+    {
+        var fields = GetFields(firstObj.GetType());
+        foreach (var field in fields)
+        {
+            FieldInfo? fieldInTarget;
+            try
+            {
+                fieldInTarget = FindField(secondObj, field.Name);
+            }
+            catch (ArgumentNullException)
+            {
+                continue;
+            }
+
+            if (fieldInTarget is null)
+            {
+                continue;
+            }
+
+            if (field.GetType() != fieldInTarget.GetType())
+            {
+                continue;
+            }
+
+            var previousValue = GetFieldValue(secondObj, field.Name);
+            var newValue = GetFieldValue(firstObj, field.Name);
+            if (previousValue is not null && previousValue.Equals(newValue))
+            {
+                continue;
+            }
+
+            differences.Add(
+                new ValueChange(
+                    field.Name,
+                    previousValue,
+                    newValue));
+        }
+    }
+
+    public static IList<ValueChange> FindDifferencesBetweenObjects(
+        object? firstObj,
+        object? secondObj,
+        bool checkFields = false,
+        bool checkProperties = true)
+    {
+        if (firstObj is null || secondObj is null)
+        {
+            return Array.Empty<ValueChange>();
+        }
+
+        var changes = new List<ValueChange>();
+        if (checkFields)
+        {
+            FindFieldDifference(
+                firstObj,
+                secondObj,
+                changes);
+        }
+
+        if (checkProperties)
+        {
+            FindPropertyDifference(
+                firstObj,
+                secondObj,
+                changes);
+        }
+
+        return changes;
+    }
+
     public static IList<ValueChange> UpdateObjectInstanceBasedOnOtherTypeValues(
-        object? source, 
-        object? target, 
+        object? source,
+        object? target,
         bool changeFields = false,
         bool changeProperties = true)
     {
@@ -288,21 +496,27 @@ public static class ReflectionHelper
         {
             return Array.Empty<ValueChange>();
         }
-        
+
         var changes = new List<ValueChange>();
         if (changeFields)
         {
-            UpdateFields(source, target, changes);
+            UpdateFields(
+                source,
+                target,
+                changes);
         }
 
         if (changeProperties)
         {
-            UpdateProperties(source, target, changes);
+            UpdateProperties(
+                source,
+                target,
+                changes);
         }
-        
+
         return changes;
     }
-    
+
     public static TTarget Convert<TSource, TTarget>(TSource source)
     {
         var target = Activator.CreateInstance<TTarget>();

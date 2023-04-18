@@ -12,10 +12,12 @@
       <PackageReference Include="Autofac" Version="7.0.0" />
       <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="8.0.0" />
       <PackageReference Include="Autofac.Extras.Quartz" Version="9.0.0" />
+      <PackageReference Include="FluentValidation" Version="11.5.2" />
+      <PackageReference Include="Mapster" Version="7.4.0-pre06" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.2" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.0" />
-      <PackageReference Include="OpenAI" Version="1.6.0" />
+      <PackageReference Include="OpenAI-DotNet" Version="6.5.3" />
       <PackageReference Include="Quartz" Version="3.6.2" />
       <PackageReference Include="Serilog.Sinks.Console" Version="4.1.1-dev-00901" />
       <PackageReference Include="Serilog.Sinks.File" Version="5.0.1-dev-00947" />

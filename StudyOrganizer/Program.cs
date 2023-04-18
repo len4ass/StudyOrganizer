@@ -9,38 +9,35 @@ internal static class Program
 {
     private static void InitializeExitHooks()
     {
-        EventHook.AddMethodOnProcessExit((_, _) =>
-        {
-            Log.Logger.Information("Завершение работы.");
-        });
+        EventHook.AddMethodOnProcessExit((_, _) => { Log.Logger.Information("Завершение работы."); });
     }
-    
+
     private static void CatchUnhandledExceptions()
     {
-        EventHook.AddMethodOnUnhandledException((_, args) =>
-        {
-            Log.Logger.Error(args.ExceptionObject as Exception, "Необработанное исключение!");
-        });
+        EventHook.AddMethodOnUnhandledException(
+            (_, args) => { Log.Logger.Error(args.ExceptionObject as Exception, "Необработанное исключение!"); });
     }
-    
+
     public static async Task Main(string[] args)
     {
+        // todo birthdaytrigger
+
         if (args.Length != 9)
         {
             Console.WriteLine("Некорректное количество параметров командной строки.");
             return;
         }
-        
+
         InitializeExitHooks();
         CatchUnhandledExceptions();
         var workingPaths = new WorkingPaths(
             Path.Combine(AppContext.BaseDirectory, args[0]),
-            Path.Combine(AppContext.BaseDirectory, args[1]), 
-            Path.Combine(AppContext.BaseDirectory, args[2]), 
-            Path.Combine(AppContext.BaseDirectory, args[3]), 
-            Path.Combine(AppContext.BaseDirectory, args[4]), 
+            Path.Combine(AppContext.BaseDirectory, args[1]),
+            Path.Combine(AppContext.BaseDirectory, args[2]),
+            Path.Combine(AppContext.BaseDirectory, args[3]),
+            Path.Combine(AppContext.BaseDirectory, args[4]),
             Path.Combine(AppContext.BaseDirectory, args[5]),
-            Path.Combine(AppContext.BaseDirectory, args[6]), 
+            Path.Combine(AppContext.BaseDirectory, args[6]),
             Path.Combine(AppContext.BaseDirectory, args[7]),
             Path.Combine(AppContext.BaseDirectory, args[8]));
 

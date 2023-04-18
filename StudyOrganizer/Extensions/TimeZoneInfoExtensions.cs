@@ -2,7 +2,7 @@ namespace StudyOrganizer.Extensions;
 
 public static class TimeZoneInfoExtensions
 {
-    public static (bool, TimeZoneInfo?) TryParse(string timeZoneId)
+    public static TimeZoneInfo? TryParse(string timeZoneId)
     {
         TimeZoneInfo timeZoneParsed;
         try
@@ -11,13 +11,13 @@ public static class TimeZoneInfoExtensions
         }
         catch (TimeZoneNotFoundException)
         {
-            return (false, null);
+            return null;
         }
         catch (InvalidTimeZoneException)
         {
-            return (false, null);
+            return null;
         }
 
-        return (true, timeZoneParsed);
+        return timeZoneParsed;
     }
 }

@@ -4,6 +4,7 @@ using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Repositories.BotCommand;
 using StudyOrganizer.Services.BotService;
+using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -14,7 +15,7 @@ namespace HelpCommand;
 public sealed class HelpCommand : BotCommand
 {
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
-    
+
     public HelpCommand(PooledDbContextFactory<MyDbContext> dbContextFactory)
     {
         Name = "help";
@@ -28,57 +29,47 @@ public sealed class HelpCommand : BotCommand
         _dbContextFactory = dbContextFactory;
     }
 
-    public override async Task<BotResponse> ExecuteAsync(
-        ITelegramBotClient client, 
-        Message message, 
-        UserInfo userInfo, 
+    public override async Task<UserResponse> ExecuteAsync(
+        ITelegramBotClient client,
+        Message message,
+        UserInfo userInfo,
         IList<string> arguments)
     {
-        var response = await ParseResponse(userInfo, arguments);
+        var response = await ParseResponse(arguments);
 
         await BotMessager.Reply(
             client,
             message,
-            response.UserResponse);
+            response.Response);
 
         return response;
     }
 
-    private async Task<BotResponse> ParseResponse(UserInfo userInfo, IList<string> arguments)
+    private async Task<UserResponse> ParseResponse(IList<string> arguments)
     {
         if (arguments.Count == 0)
         {
             var userResponse = await FormatAllCommands();
-            return BotResponseFactory.Success(
-                Name, 
-                userResponse, 
-                userInfo.Handle!,
-                userInfo.Id);
+            return UserResponseFactory.Success(userResponse);
         }
 
         if (arguments.Count == 1)
         {
             var userResponse = await FormatCommand(arguments[0]);
-            return BotResponseFactory.Success(
-                Name, 
-                userResponse, 
-                userInfo.Handle!,
-                userInfo.Id);
+            return UserResponseFactory.Success(userResponse);
         }
 
-        return BotResponseFactory.ArgumentLimitExceeded(
-            Name, 
-            userInfo.Handle!, 
-            userInfo.Id);
+        return UserResponseFactory.ArgumentLimitExceeded(Name);
     }
-    
+
     private async Task<string> FormatAllCommands()
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         var commandRepository = new CommandInfoRepository(dbContext);
+
         var commands = await commandRepository.GetDataAsync();
         var sb = new StringBuilder("Список всех команд: \n \n");
-        for (int i = 0; i < commands.Count; i++)
+        for (var i = 0; i < commands.Count; i++)
         {
             sb.AppendLine($"<b>{i + 1}</b>. {commands[i]}");
         }
@@ -99,6 +90,7 @@ public sealed class HelpCommand : BotCommand
         return $"Информация о команде <b>{command.Name}</b>: \n\n" +
                $"<b>Описание</b>: {command.Description}\n" +
                $"<b>Уровень доступа</b>: {command.Settings.AccessLevel}\n" +
-               $"<b>Формат</b>: <code>{command.Format.Replace("<", "").Replace(">", "")}</code>";
+               $"<b>Формат</b>: <code>{command.Format.Replace("<", "").Replace(">", "")}</code>\n" +
+               command.OtherInfo;
     }
 }

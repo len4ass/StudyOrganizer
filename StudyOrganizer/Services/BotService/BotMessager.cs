@@ -1,6 +1,7 @@
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace StudyOrganizer.Services.BotService;
 
@@ -59,5 +60,18 @@ public static class BotMessager
             response,
             replyToMessageId: message.MessageId,
             parseMode: ParseMode.Html); 
+    }
+
+    public static async Task<Message> ReplyKeyboardMarkup(
+        ITelegramBotClient client,
+        Message message,
+        string response,
+        InlineKeyboardMarkup keyboardMarkup)
+    {
+        return await client.SendTextMessageAsync(message.Chat.Id,
+            response,
+            replyToMessageId: message.MessageId,
+            parseMode: ParseMode.Html,
+            replyMarkup: keyboardMarkup);
     }
 }

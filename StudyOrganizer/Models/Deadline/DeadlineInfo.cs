@@ -24,6 +24,22 @@ public class DeadlineInfo
         DateUtc = dateUtc;
     }
 
+    public bool IsInGivenDayRange(int startDay, int endDay)
+    {
+        if (startDay < 0 || endDay < 1 || startDay > endDay)
+        {
+            return false;
+        }
+
+        var nowUtc = DateTimeOffset.UtcNow;
+        return DateUtc >= nowUtc + TimeSpan.FromDays(startDay) && DateUtc <= nowUtc + TimeSpan.FromDays(endDay);
+    }
+    
+    public bool IsInGivenDayRange(int days)
+    {
+        return IsInGivenDayRange(0, days);
+    }
+    
     public string ToString(TimeZoneInfo timeZoneInfo)
     {
         var stringDays = DateUtc.GetDaysDifferenceUtc().GetStringDays();
@@ -35,6 +51,18 @@ public class DeadlineInfo
                $"<b>{dateTimeLocal.ToString("g", new CultureInfo("ru-RU"))} " +
                $"(Осталось: {stringDays} {stringHours} {stringMinutes})</b> " +
                $"({Name})";
+    }
+    
+    public string ToStringShortened(TimeZoneInfo timeZoneInfo)
+    {
+        var stringDays = DateUtc.GetDaysDifferenceUtc().GetStringDays();
+        var stringHours = DateUtc.GetHourDifferenceUtc().GetStringHours();
+        var stringMinutes = DateUtc.GetMinuteDifferenceUtc().GetStringMinutes();
+
+        var dateTimeLocal = TimeZoneInfo.ConvertTimeFromUtc(DateUtc.DateTime, timeZoneInfo);
+        return $"{Description} — " +
+               $"<b>{dateTimeLocal.ToString("g", new CultureInfo("ru-RU"))} " +
+               $"(Осталось: {stringDays} {stringHours} {stringMinutes})</b>";
     }
     
     public override bool Equals(object? obj)

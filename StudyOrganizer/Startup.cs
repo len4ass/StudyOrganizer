@@ -1,9 +1,11 @@
 using System.Reflection;
 using Autofac;
 using Autofac.Extras.Quartz;
+using FluentValidation;
+using MapsterMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using OpenAI_API;
+using OpenAI;
 using Quartz;
 using Serilog;
 using StudyOrganizer.Database;
@@ -11,14 +13,22 @@ using StudyOrganizer.Extensions;
 using StudyOrganizer.Loaders;
 using StudyOrganizer.Models.Command;
 using StudyOrganizer.Models.Trigger;
+using StudyOrganizer.Models.User;
 using StudyOrganizer.Services;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Command;
-using StudyOrganizer.Services.OpenAi;
+using StudyOrganizer.Services.BotService.Handlers.Message;
+using StudyOrganizer.Services.BotService.Handlers.Query;
+using StudyOrganizer.Services.OpenAi.SpeechToText;
+using StudyOrganizer.Services.OpenAi.TextToCommand;
 using StudyOrganizer.Services.TriggerService;
 using StudyOrganizer.Services.TriggerService.Jobs;
 using StudyOrganizer.Services.YandexSpeechKit;
 using StudyOrganizer.Settings;
+using StudyOrganizer.Settings.SimpleTrigger;
+using StudyOrganizer.Validators.Command;
+using StudyOrganizer.Validators.Trigger;
+using StudyOrganizer.Validators.User;
 using Telegram.Bot;
 using YandexSpeechKitApi;
 using IContainer = Autofac.IContainer;
@@ -34,7 +44,7 @@ public class Startup
     private IContainer _container = null!;
     private BotCommandAggregator _commandAggregator = null!;
     private CronJobAggregator _cronJobAggregator = null!;
-    
+
     public Startup(WorkingPaths workingPaths, ContainerBuilder containerBuilder)
     {
         _workingPaths = workingPaths;
@@ -48,29 +58,61 @@ public class Startup
             .UseSqlite($"Data Source={_workingPaths.DataBaseFile}")
             .Options;
 
-        var poolingContextFactory = new PooledDbContextFactory<MyDbContext>(options, poolSize: 16);
-        _containerBuilder.RegisterInstance(poolingContextFactory).SingleInstance();
+        var poolingContextFactory = new PooledDbContextFactory<MyDbContext>(options, 32);
+        _containerBuilder.RegisterInstance(poolingContextFactory)
+            .SingleInstance();
     }
 
     private void ConfigureAggregators()
     {
-        _containerBuilder.RegisterInstance(_workingPaths).SingleInstance();
+        _containerBuilder.RegisterInstance(_workingPaths)
+            .SingleInstance();
         _commandAggregator = new BotCommandAggregator();
-        _containerBuilder.RegisterInstance(_commandAggregator).SingleInstance();
-        
+        _containerBuilder.RegisterInstance(_commandAggregator)
+            .SingleInstance();
+
         _cronJobAggregator = new CronJobAggregator();
-        _containerBuilder.RegisterInstance(_cronJobAggregator).SingleInstance();
+        _containerBuilder.RegisterInstance(_cronJobAggregator)
+            .SingleInstance();
     }
-    
+
     private void ConfigureLogger()
     {
         var logger = new LoggerConfiguration()
             .WriteTo.Console()
-            .WriteTo.File(Path.Combine(AppContext.BaseDirectory, "/logs/logs.txt"), 
+            .WriteTo.File(
+                Path.Combine(AppContext.BaseDirectory, "/logs/logs.txt"),
                 rollingInterval: RollingInterval.Day)
             .CreateLogger();
         Log.Logger = logger;
-        _containerBuilder.RegisterInstance(logger).SingleInstance();
+        _containerBuilder.RegisterInstance(logger)
+            .SingleInstance();
+    }
+
+    private void ConfigureValidators()
+    {
+        var triggerSettingsValidator = new TriggerSettingsValidator();
+        _containerBuilder.RegisterInstance(triggerSettingsValidator)
+            .As<IValidator<TriggerSettings>>()
+            .SingleInstance();
+
+        var userDtoValidator = new UserDtoValidator();
+        _containerBuilder.RegisterInstance(userDtoValidator)
+            .As<IValidator<UserDto>>()
+            .SingleInstance();
+
+        var commandSettingsValidator = new CommandSettingsValidator();
+        _containerBuilder.RegisterInstance(commandSettingsValidator)
+            .As<IValidator<CommandSettings>>()
+            .SingleInstance();
+    }
+
+    private void ConfigureMapper()
+    {
+        var mapper = new Mapper();
+        _containerBuilder.RegisterInstance(mapper)
+            .As<IMapper>()
+            .SingleInstance();
     }
 
     private void ConfigureBot()
@@ -78,7 +120,8 @@ public class Startup
         var token = ProgramData.LoadFrom<Token>(_workingPaths.BotTokenFile);
         ArgumentNullException.ThrowIfNull(token.Hash);
         _containerBuilder.RegisterInstance(new TelegramBotClient(token.Hash))
-            .As<ITelegramBotClient>().SingleInstance();
+            .As<ITelegramBotClient>()
+            .SingleInstance();
     }
 
     private void ConfigureNeuralNetworkApis()
@@ -88,14 +131,14 @@ public class Startup
 
         if (openAiToken.Hash != string.Empty)
         {
-            var api = new OpenAIAPI(openAiToken.Hash);
+            var api = new OpenAIClient(openAiToken.Hash);
             _containerBuilder.RegisterInstance(api)
                 .SingleInstance();
-            
+
             _containerBuilder.RegisterInstance(new OpenAiTextAnalyzer(api, _commandAggregator))
                 .As<IOpenAiTextAnalyzer>()
                 .SingleInstance();
-            
+
             var yandexToken = ProgramData.LoadFrom<Token>(_workingPaths.YandexCloudApiTokenFile);
             ArgumentNullException.ThrowIfNull(yandexToken.Hash);
             if (yandexToken.Hash != string.Empty)
@@ -116,22 +159,24 @@ public class Startup
             _containerBuilder.RegisterInstance(new EmptyTextAnalyzer())
                 .As<IOpenAiTextAnalyzer>()
                 .SingleInstance();
-            _containerBuilder.RegisterInstance(new EmptySpeechKitClient())
-                .As<ISpeechKitClient>()
+            _containerBuilder.RegisterInstance(new EmptySpeechAnalyzer())
+                .As<IOpenAiSpeechAnalyzer>()
                 .SingleInstance();
         }
     }
 
     private void ConfigureSpeechToTextApi()
     {
-        _containerBuilder.RegisterType<YandexSpeechAnalyzer>().SingleInstance();
+        _containerBuilder.RegisterType<YandexSpeechAnalyzer>()
+            .SingleInstance();
     }
 
     private void ConfigureSettings()
     {
         var settings = ProgramData.LoadFrom<GeneralSettings>(_workingPaths.SettingsFile);
         ArgumentNullException.ThrowIfNull(settings);
-        _containerBuilder.RegisterInstance(settings).SingleInstance();
+        _containerBuilder.RegisterInstance(settings)
+            .SingleInstance();
     }
 
     private void RegisterDynamicTypes<T>(string pathToLook)
@@ -141,23 +186,24 @@ public class Startup
         {
             var assembly = Assembly.LoadFrom(assemblyPath);
             _containerBuilder.RegisterAssemblyTypes(assembly)
-                .Where(type =>
-                {
-                    bool canBeAssigned = typeof(T).IsAssignableFrom(type);
-                    if (canBeAssigned)
+                .Where(
+                    type =>
                     {
-                        _loadedTypes.Add(type);
-                    }
-                    
-                    return canBeAssigned;
-                })
+                        var canBeAssigned = typeof(T).IsAssignableFrom(type);
+                        if (canBeAssigned)
+                        {
+                            _loadedTypes.Add(type);
+                        }
+
+                        return canBeAssigned;
+                    })
                 .AsSelf();
         }
     }
 
     private void RegisterQuartzJobs()
     {
-        _containerBuilder.RegisterModule(new QuartzAutofacFactoryModule()); 
+        _containerBuilder.RegisterModule(new QuartzAutofacFactoryModule());
         var accordingFiles = Directory.GetFiles(_workingPaths.TriggersDirectory, "*.dll");
         foreach (var assemblyPath in accordingFiles)
         {
@@ -175,14 +221,23 @@ public class Startup
 
     private void ConfigureBackgroundServices()
     {
+        _containerBuilder.RegisterType<TextMessageUpdateHandler>()
+            .SingleInstance();
+        _containerBuilder.RegisterType<VoiceMessageUpdateHandler>()
+            .SingleInstance();
+        _containerBuilder.RegisterType<MessageUpdateHandler>()
+            .SingleInstance();
+        _containerBuilder.RegisterType<CallbackQueryUpdateHandler>()
+            .SingleInstance();
+
         _containerBuilder.RegisterType<BotService>()
-            .Named<IService>("bot_service").As<IService>().SingleInstance();
+            .Named<IService>("bot_service")
+            .As<IService>()
+            .SingleInstance();
         _containerBuilder.RegisterType<SimpleTriggerService>()
-            .Named<IService>("trigger_service").As<IService>().SingleInstance();
-        _containerBuilder.RegisterType<BotCommandObserverService>()
-            .Named<IService>("bot_command_observer_service").As<IService>().SingleInstance();
-        _containerBuilder.RegisterType<CronJobObserverService>()
-            .Named<IService>("trigger_observer_service").As<IService>().SingleInstance();
+            .Named<IService>("trigger_service")
+            .As<IService>()
+            .SingleInstance();
     }
 
     private void BuildContainer()
@@ -190,39 +245,27 @@ public class Startup
         _container = _containerBuilder.Build();
     }
 
-    private void LoadCommands()
+    private void LoadCommand(BotCommand botCommand)
     {
-        foreach (var type in _loadedTypes) 
+        Log.Logger.Information($"Загружена команда {botCommand.Name}.");
+        var settingsFile = Path.Combine(_workingPaths.CommandsSettingsDirectory, $"{botCommand.Name}.json");
+        if (File.Exists(settingsFile))
         {
-            if (type.BaseType != typeof(BotCommand))
+            var settings = ProgramData.LoadFrom<CommandSettings>(settingsFile);
+            var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
+                settings,
+                botCommand.Settings);
+            foreach (var change in changes)
             {
-                continue;
+                Log.Logger.Information($"Изменены настройки команды {botCommand.Name} при загрузке: {change}");
             }
-            
-            if (_container.Resolve(type) is not BotCommand command)
-            {
-                continue;
-            }
-
-            Log.Logger.Information($"Загружена команда {command.Name}.");
-            var settingsFile = Path.Combine(_workingPaths.CommandsSettingsDirectory, $"{command.Name}.json");
-            if (File.Exists(settingsFile))
-            {
-                var settings = ProgramData.LoadFrom<CommandSettings>(settingsFile);
-                var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
-                    settings, 
-                    command.Settings);
-                foreach (var change in changes)
-                {
-                    Log.Logger.Information(
-                        $"Изменены настройки команды {command.Name} при загрузке: " +
-                        $"значение {change.Name} изменено с {change.PreviousValue} на {change.CurrentValue}");
-                }
-            }
-
-            _commandAggregator.RegisterCommand(command.Name, command);
         }
 
+        _commandAggregator.RegisterCommand(botCommand.Name, botCommand);
+    }
+
+    private void UpdateCommandsInDatabase()
+    {
         var dbContextFactory = _container.Resolve<PooledDbContextFactory<MyDbContext>>();
         using var dbContext = dbContextFactory.CreateDbContext();
         dbContext.Commands.Clear();
@@ -231,14 +274,104 @@ public class Startup
             var commandInfo = ReflectionHelper.Convert<BotCommand, CommandInfo>(command);
             dbContext.Commands.Add(commandInfo);
         }
-        
+
+        dbContext.SaveChanges();
+    }
+
+    private void LoadCommands()
+    {
+        foreach (var type in _loadedTypes)
+        {
+            if (type.BaseType != typeof(BotCommand))
+            {
+                continue;
+            }
+
+            if (_container.Resolve(type) is not BotCommand command)
+            {
+                continue;
+            }
+
+            LoadCommand(command);
+        }
+
+        UpdateCommandsInDatabase();
+    }
+
+    private void LoadCronJob(SimpleTrigger simpleTrigger)
+    {
+        Log.Logger.Information($"Загружен триггер {simpleTrigger.Name}.");
+        var settingsFile = Path.Combine(_workingPaths.TriggersSettingsDirectory, $"{simpleTrigger.Name}.json");
+        if (!File.Exists(settingsFile))
+        {
+            return;
+        }
+
+        var triggerValidator = _container.Resolve<IValidator<TriggerSettings>>();
+        var settings = ProgramData.LoadFrom<TriggerSettings>(settingsFile);
+        var result = triggerValidator.Validate(settings);
+        if (!result.IsValid)
+        {
+            throw new InvalidTriggerSettingsException(simpleTrigger.Name, result.ToString());
+        }
+
+        var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
+            settings,
+            simpleTrigger.Settings);
+        foreach (var change in changes)
+        {
+            Log.Logger.Information($"Изменены настройки триггера {simpleTrigger.Name} при загрузке: {change}");
+        }
+    }
+
+    private void ScheduleAndRegisterCronJob(
+        Type triggerType,
+        SimpleTrigger simpleTrigger,
+        IScheduler scheduler)
+    {
+        var job = JobBuilder.Create(triggerType)
+            .WithIdentity(simpleTrigger.Name, "worker_service")
+            .StoreDurably()
+            .Build();
+        var trigger = QuartzExtensions.BuildTrigger(simpleTrigger);
+
+        scheduler.ScheduleJob(job, trigger)
+            .GetAwaiter()
+            .GetResult();
+        if (!simpleTrigger.Settings.ShouldRun)
+        {
+            scheduler.PauseTrigger(trigger.Key)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        _cronJobAggregator.RegisterJob(
+            simpleTrigger.Name,
+            new CronJob
+            {
+                LoadedTrigger = simpleTrigger,
+                JobKey = job.Key,
+                TriggerKey = trigger.Key
+            });
+    }
+
+    private void UpdateCronJobsInDatabase()
+    {
+        var dbContextFactory = _container.Resolve<PooledDbContextFactory<MyDbContext>>();
+        using var dbContext = dbContextFactory.CreateDbContext();
+        dbContext.Triggers.Clear();
+        foreach (var (_, cronJob) in _cronJobAggregator)
+        {
+            dbContext.Triggers.Add(ReflectionHelper.Convert<SimpleTrigger, TriggerInfo>(cronJob.LoadedTrigger));
+        }
+
         dbContext.SaveChanges();
     }
 
     private void LoadCronJobs()
     {
         var scheduler = _container.Resolve<IScheduler>();
-        foreach (var type in _loadedTypes) 
+        foreach (var type in _loadedTypes)
         {
             if (type.BaseType != typeof(SimpleTrigger))
             {
@@ -249,53 +382,15 @@ public class Startup
             {
                 continue;
             }
-            
-            Log.Logger.Information($"Загружен триггер {simpleTrigger.Name}.");
-            var settingsFile = Path.Combine(_workingPaths.TriggersSettingsDirectory, $"{simpleTrigger.Name}.json");
-            if (File.Exists(settingsFile))
-            {
-                var settings = ProgramData.LoadFrom<TriggerSettings>(settingsFile);
-                var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
-                    settings, 
-                    simpleTrigger.Settings);
-                foreach (var change in changes)
-                {
-                    Log.Logger.Information(
-                        $"Изменены настройки триггера {simpleTrigger.Name} при загрузке: " +
-                        $"значение {change.Name} изменено с {change.PreviousValue} на {change.CurrentValue}");
-                }
-            }
 
-            var job = JobBuilder.Create(type)
-                .WithIdentity(simpleTrigger.Name, "worker_service")
-                .StoreDurably()
-                .Build();
-            var trigger = QuartzExtensions.BuildTrigger(simpleTrigger);
-            
-            scheduler.ScheduleJob(job, trigger).GetAwaiter().GetResult();
-            if (!simpleTrigger.Settings.ShouldRun)
-            {
-                scheduler.PauseTrigger(trigger.Key).GetAwaiter().GetResult();
-            }
-            
-            _cronJobAggregator.RegisterJob(simpleTrigger.Name, new CronJob
-            {
-                LoadedTrigger = simpleTrigger,
-                JobKey = job.Key,
-                TriggerKey = trigger.Key
-            });
+            LoadCronJob(simpleTrigger);
+            ScheduleAndRegisterCronJob(
+                type,
+                simpleTrigger,
+                scheduler);
         }
 
-        var dbContextFactory = _container.Resolve<PooledDbContextFactory<MyDbContext>>();
-        using var dbContext = dbContextFactory.CreateDbContext();
-        dbContext.Triggers.Clear();
-        foreach (var (_, cronJob) in _cronJobAggregator)
-        {
-            dbContext.Triggers.Add(
-                ReflectionHelper.Convert<SimpleTrigger, TriggerInfo>(cronJob.LoadedTrigger));
-        }
-
-        dbContext.SaveChanges();
+        UpdateCronJobsInDatabase();
     }
 
     private IEnumerable<IService> CreateServices()
@@ -308,6 +403,8 @@ public class Startup
         ConfigureAggregators();
         ConfigureLogger();
         ConfigureBot();
+        ConfigureValidators();
+        ConfigureMapper();
         ConfigureNeuralNetworkApis();
         ConfigureSpeechToTextApi();
         ConfigureSettings();

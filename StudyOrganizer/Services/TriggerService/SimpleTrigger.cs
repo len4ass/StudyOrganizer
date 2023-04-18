@@ -1,5 +1,6 @@
 using Quartz;
 using StudyOrganizer.Settings;
+using StudyOrganizer.Settings.SimpleTrigger;
 
 namespace StudyOrganizer.Services.TriggerService;
 
@@ -9,7 +10,7 @@ public abstract class SimpleTrigger : IJob
     public string Description { get; init; }
 
     public TriggerSettings Settings { get; set; }
-    
+
     protected SimpleTrigger()
     {
         Name = "trigger";

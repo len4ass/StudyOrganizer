@@ -1,12 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 using StudyOrganizer.Settings;
+using StudyOrganizer.Settings.SimpleTrigger;
 
 namespace StudyOrganizer.Models.Trigger;
 
 public class TriggerInfo
 {
-    [Key]
-    public string Name { get; init; }
+    [Key] public string Name { get; init; }
     public string Description { get; init; }
 
     public TriggerSettings Settings { get; set; }
@@ -14,20 +14,20 @@ public class TriggerInfo
     public TriggerInfo()
     {
     }
-    
+
     public TriggerInfo(
-        string name, 
-        string description, 
+        string name,
+        string description,
         TriggerSettings settings)
     {
         Name = name;
         Description = description;
         Settings = settings;
     }
-    
+
     public override string ToString()
     {
-        return $"{Name}";
+        return $"{Name} — {Description}";
     }
 
     public override bool Equals(object? obj)
@@ -36,7 +36,7 @@ public class TriggerInfo
         {
             return false;
         }
-        
+
         return Equals(triggerInfo);
     }
 

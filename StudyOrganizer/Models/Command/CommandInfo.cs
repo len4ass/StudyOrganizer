@@ -8,19 +8,21 @@ namespace StudyOrganizer.Models.Command;
 
 public class CommandInfo
 {
-    [Key]
-    public string Name { get; init; }
+    [Key] public string Name { get; init; }
     public string Description { get; init; }
-    
     public string Format { get; init; }
-    
+    public string OtherInfo { get; init; }
     public CommandSettings Settings { get; set; }
 
     public CommandInfo()
     {
     }
-    
-    public CommandInfo(string name, string description, string format, CommandSettings settings)
+
+    public CommandInfo(
+        string name,
+        string description,
+        string format,
+        CommandSettings settings)
     {
         Name = name;
         Description = description;
@@ -39,7 +41,7 @@ public class CommandInfo
         {
             return false;
         }
-        
+
         return Equals(command);
     }
 

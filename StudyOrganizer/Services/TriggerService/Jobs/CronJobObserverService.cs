@@ -10,6 +10,7 @@ using StudyOrganizer.Extensions;
 using StudyOrganizer.Loaders;
 using StudyOrganizer.Repositories.SimpleTrigger;
 using StudyOrganizer.Settings;
+using StudyOrganizer.Settings.SimpleTrigger;
 
 namespace StudyOrganizer.Services.TriggerService.Jobs;
 
@@ -17,13 +18,13 @@ public class CronJobObserverService : IService
 {
     private readonly IScheduler _scheduler;
     private readonly CronJobAggregator _cronJobAggregator;
-    private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;    
+    private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
     private readonly WorkingPaths _workingPaths;
     private FileSystemWatcher _observer;
 
     public CronJobObserverService(
         IScheduler scheduler,
-        CronJobAggregator cronJobAggregator, 
+        CronJobAggregator cronJobAggregator,
         PooledDbContextFactory<MyDbContext> dbContextFactory,
         WorkingPaths workingPaths)
     {
@@ -69,7 +70,8 @@ public class CronJobObserverService : IService
         }
         catch (JsonException e)
         {
-            Log.Logger.Error(e, 
+            Log.Logger.Error(
+                e,
                 $"Произошла ошибка при попытке получения новых настроек триггера {trigger.Name}!");
             return;
         }
@@ -78,14 +80,15 @@ public class CronJobObserverService : IService
             Log.Logger.Error(e, $"Не удалось обновить триггер {trigger.Name}!");
             return;
         }
-        
+
         using var dbContext = _dbContextFactory.CreateDbContext();
         var triggerInDatabase = dbContext.Triggers.Find(trigger.Name);
-        
+
         var changes = ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
             settings,
             trigger.Settings);
-        ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(settings,
+        ReflectionHelper.UpdateObjectInstanceBasedOnOtherTypeValues(
+            settings,
             triggerInDatabase?.Settings);
         dbContext.SaveChanges();
 
@@ -93,9 +96,11 @@ public class CronJobObserverService : IService
         {
             return;
         }
-        
+
         var cronTrigger = QuartzExtensions.BuildTrigger(trigger);
-        _scheduler.RescheduleJob(cronJob.TriggerKey, cronTrigger).GetAwaiter().GetResult();
+        _scheduler.RescheduleJob(cronJob.TriggerKey, cronTrigger)
+            .GetAwaiter()
+            .GetResult();
         cronJob.TriggerKey = cronTrigger.Key;
 
         if (!trigger.Settings.ShouldRun)
@@ -110,7 +115,7 @@ public class CronJobObserverService : IService
                 $"значение {change.Name} изменено с {change.PreviousValue} на {change.CurrentValue}");
         }
     }
-    
+
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
         if (e.ChangeType != WatcherChangeTypes.Changed)
@@ -122,7 +127,7 @@ public class CronJobObserverService : IService
         {
             return;
         }
-        
+
         Log.Logger.Information($"Замечено изменение по пути {e.FullPath}.");
         UpdateCronJobInfo(e.FullPath);
     }

@@ -1,10 +1,9 @@
-namespace StudyOrganizer.Services.TriggerService;
+namespace StudyOrganizer.Settings.SimpleTrigger;
 
 public enum SimpleTriggerRecurringType
 {
     EveryMinute,
     Hourly,
     Daily,
-    Weekly,
-    Monthly
+    Weekly
 }

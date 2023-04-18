@@ -3,14 +3,16 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Services.BotService;
+using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 using BotCommand = StudyOrganizer.Services.BotService.Command.BotCommand;
 
 namespace ClearDeadlinesCommand;
 
-public class ClearDeadlinesCommand : BotCommand
+public sealed class ClearDeadlinesCommand : BotCommand
 {
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
 
@@ -23,41 +25,73 @@ public class ClearDeadlinesCommand : BotCommand
         {
             AccessLevel = AccessLevel.Normal
         };
-        
+
         _dbContextFactory = dbContextFactory;
     }
 
-    public override async Task<BotResponse> ExecuteAsync(
-        ITelegramBotClient client, 
-        Message message, 
-        UserInfo userInfo, 
+    public override async Task<UserResponse> ExecuteAsync(
+        ITelegramBotClient client,
+        Message message,
+        UserInfo userInfo,
         IList<string> arguments)
     {
-        var response = await ParseResponse(userInfo, arguments);
-        await BotMessager.Reply(
-            client, 
-            message, 
-            response.UserResponse);
-        
-        return response;
+        if (message.From!.IsBot && arguments.Count == 1 && arguments[0] == "Да")
+        {
+            var clearResponse = await ParseResponse(Array.Empty<string>());
+
+            await BotMessager.EditMessage(
+                client,
+                message,
+                clearResponse.Response);
+            return clearResponse;
+        }
+
+        if (message.From!.IsBot && arguments.Count == 1 && arguments[0] == "Нет")
+        {
+            var clearResponse = new UserResponse
+            {
+                Response = "Удаление дедлайнов отменено."
+            };
+
+            await BotMessager.EditMessage(
+                client,
+                message,
+                clearResponse.Response);
+            return clearResponse;
+        }
+
+        var confirmationMarkup = new InlineKeyboardMarkup(
+            new[]
+            {
+                new InlineKeyboardButton("Да")
+                {
+                    CallbackData = $"{userInfo.Id} /{Name} Да"
+                },
+                new InlineKeyboardButton("Нет")
+                {
+                    CallbackData = $"{userInfo.Id} /{Name} Нет"
+                }
+            });
+
+        var userResponse = "Вы уверены, что хотите удалить все дедлайны?";
+        await BotMessager.ReplyKeyboardMarkup(
+            client,
+            message,
+            userResponse,
+            confirmationMarkup);
+
+        return UserResponseFactory.Success(Name);
     }
 
-    private async Task<BotResponse> ParseResponse(UserInfo userInfo, IList<string> arguments)
+    private async Task<UserResponse> ParseResponse(IList<string> arguments)
     {
         if (arguments.Count > 0)
         {
-            return BotResponseFactory.ArgumentLimitExceeded(
-                Name, 
-                userInfo.Handle!, 
-                userInfo.Id);
+            return UserResponseFactory.ArgumentLimitExceeded(Name);
         }
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         await dbContext.Database.ExecuteSqlRawAsync("DELETE FROM Deadlines");
-        return BotResponseFactory.Success(
-            Name, 
-            "Успешно удалены все дедлайны.", 
-            userInfo.Handle!, 
-            userInfo.Id);
+        return UserResponseFactory.Success("Успешно удалены все дедлайны.");
     }
 }

@@ -7,6 +7,7 @@ using StudyOrganizer.Models.User;
 using StudyOrganizer.Parsers;
 using StudyOrganizer.Repositories.Deadline;
 using StudyOrganizer.Services.BotService;
+using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -14,11 +15,11 @@ using BotCommand = StudyOrganizer.Services.BotService.Command.BotCommand;
 
 namespace AddDeadlineCommand;
 
-public class AddDeadlineCommand : BotCommand
+public sealed class AddDeadlineCommand : BotCommand
 {
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
     private readonly GeneralSettings _settings;
-    
+
     public AddDeadlineCommand(PooledDbContextFactory<MyDbContext> dbContextFactory, GeneralSettings settings)
     {
         Name = "adddeadline";
@@ -32,48 +33,45 @@ public class AddDeadlineCommand : BotCommand
         _dbContextFactory = dbContextFactory;
         _settings = settings;
     }
-    
-    public override async Task<BotResponse> ExecuteAsync(
+
+    public override async Task<UserResponse> ExecuteAsync(
         ITelegramBotClient client,
-        Message message, 
-        UserInfo userInfo, 
+        Message message,
+        UserInfo userInfo,
         IList<string> arguments)
     {
-        var response = await ParseResponse(userInfo, arguments);
+        var response = await ParseResponse(arguments);
         await BotMessager.Reply(
             client,
             message,
-            response.UserResponse);
+            response.Response);
 
         return response;
     }
 
-    private async Task<BotResponse> ParseResponse(UserInfo userInfo, IList<string> arguments)
+    private async Task<UserResponse> ParseResponse(IList<string> arguments)
     {
         if (arguments.Count < 2)
         {
-            return BotResponseFactory.NotEnoughArguments(
-                Name, 
-                userInfo.Handle!, 
-                userInfo.Id);
+            return UserResponseFactory.NotEnoughArguments(Name);
         }
 
-        string fullCommand = string.Join(' ', arguments);
+        var fullCommand = string.Join(' ', arguments);
         var match = new Regex(RegexHelper.DateTimeRegex).Match(fullCommand);
         if (!match.Success)
         {
-            return BotResponseFactory.FailedParsing(
-                Name, 
-                userInfo.Handle!, 
-                userInfo.Id);
+            return UserResponseFactory.FailedParsing(Name);
         }
 
-        string name = arguments[0];
-        string dateTimeString = match.Value;
-        string description = string.Join(' ', fullCommand
-            .Replace(name, "")
-            .Replace(dateTimeString, "")
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim();
+        var name = arguments[0];
+        var dateTimeString = match.Value;
+        var description = string.Join(
+                ' ',
+                fullCommand
+                    .Replace(name, "")
+                    .Replace(dateTimeString, "")
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            .Trim();
 
         if (description.Length == 0)
         {
@@ -83,18 +81,16 @@ public class AddDeadlineCommand : BotCommand
         var dateTimeOffset = TextParser.ParseDateTime(dateTimeString, _settings.ChatTimeZoneUtc);
         if (dateTimeOffset is null || dateTimeOffset < DateTimeOffset.UtcNow)
         {
-            return BotResponseFactory.FailedParsing(Name, userInfo.Handle!, userInfo.Id);
+            return UserResponseFactory.FailedParsing(Name);
         }
 
         return await AddDeadlineToDatabase(
-            userInfo, 
-            name, 
-            dateTimeOffset.Value, 
+            name,
+            dateTimeOffset.Value,
             description);
     }
 
-    private async Task<BotResponse> AddDeadlineToDatabase(
-        UserInfo userInfo,
+    private async Task<UserResponse> AddDeadlineToDatabase(
         string name,
         DateTimeOffset dateTimeUtc,
         string description)
@@ -105,21 +101,22 @@ public class AddDeadlineCommand : BotCommand
         var deadlineInDatabase = await deadlineRepository.FindAsync(name);
         if (deadlineInDatabase is not null)
         {
-            return BotResponseFactory.EntryAlreadyExists(
-                Name, 
-                "дедлайн", 
-                name, 
-                userInfo.Handle!,
-                userInfo.Id);
+            return UserResponseFactory.EntryAlreadyExists(
+                Name,
+                "дедлайн",
+                name);
         }
-        
-        var deadline = new DeadlineInfo(name, description, dateTimeUtc);
+
+        var deadline = new DeadlineInfo(
+            name,
+            description,
+            dateTimeUtc);
+
         await deadlineRepository.AddAsync(deadline);
         await deadlineRepository.SaveAsync();
-        return BotResponseFactory.Success(
-            Name, 
-            $"Дедлайн <b>{name}</b> с датой {dateTimeUtc.UtcDateTime:dd.MM.yyyy HH:mm:ss} (UTC) успешно добавлен в базу данных.", 
-            userInfo.Handle!,
-            userInfo.Id);
+
+        var response =
+            $"Дедлайн <b>{name}</b> с датой {dateTimeUtc.UtcDateTime:dd.MM.yyyy HH:mm:ss} (UTC) успешно добавлен в базу данных.";
+        return UserResponseFactory.Success(response);
     }
 }
