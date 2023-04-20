@@ -1,9 +1,9 @@
 ﻿using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Quartz;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.Deadline;
-using StudyOrganizer.Repositories.Deadline;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.TriggerService;
 using StudyOrganizer.Settings;
@@ -87,8 +87,7 @@ public sealed class DeadlineAnnouncementTrigger : SimpleTrigger
     public override async Task Execute(IJobExecutionContext context)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var deadlineRepository = new DeadlineInfoRepository(dbContext);
-        var deadlines = await deadlineRepository.GetDataAsync();
+        var deadlines = await dbContext.Deadlines.ToListAsync();
 
         var deadlinesForToday = deadlines
             .Where(deadline => deadline.IsInGivenDayRange(1))

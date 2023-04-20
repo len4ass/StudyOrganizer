@@ -1,6 +1,6 @@
-namespace YandexSpeechKitApi;
+namespace YandexSpeechKitApi.Clients;
 
-public class CommonUri
+public class Endpoints
 {
     public string SpeechToText => "https://stt.api.cloud.yandex.net/speech/v1/stt:recognize";
 }

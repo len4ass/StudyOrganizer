@@ -1,8 +1,9 @@
 ﻿using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
+using StudyOrganizer.Extensions;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.BotCommand;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
@@ -65,9 +66,8 @@ public sealed class HelpCommand : BotCommand
     private async Task<string> FormatAllCommands()
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var commandRepository = new CommandInfoRepository(dbContext);
+        var commands = await dbContext.Commands.ToListAsync();
 
-        var commands = await commandRepository.GetDataAsync();
         var sb = new StringBuilder("Список всех команд: \n \n");
         for (var i = 0; i < commands.Count; i++)
         {
@@ -80,8 +80,7 @@ public sealed class HelpCommand : BotCommand
     private async Task<string> FormatCommand(string name)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var commandRepository = new CommandInfoRepository(dbContext);
-        var command = await commandRepository.FindAsync(name);
+        var command = await dbContext.Commands.FindAsync(name);
         if (command is null)
         {
             return $"Команды с именем <b>{name}</b> не существует.";
@@ -90,7 +89,7 @@ public sealed class HelpCommand : BotCommand
         return $"Информация о команде <b>{command.Name}</b>: \n\n" +
                $"<b>Описание</b>: {command.Description}\n" +
                $"<b>Уровень доступа</b>: {command.Settings.AccessLevel}\n" +
-               $"<b>Формат</b>: <code>{command.Format.Replace("<", "").Replace(">", "")}</code>\n" +
+               $"<b>Формат</b>: <code>{command.Format.RemoveAllHtmlCharacters()}</code>\n" +
                command.OtherInfo;
     }
 }

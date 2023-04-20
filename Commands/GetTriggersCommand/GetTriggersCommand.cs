@@ -1,13 +1,12 @@
 ﻿using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Formatters;
 using StudyOrganizer.Loaders;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.SimpleTrigger;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
-using StudyOrganizer.Services.TriggerService;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -68,9 +67,7 @@ public sealed class GetTriggersCommand : BotCommand
     private async Task<string> FormatTrigger(string triggerName)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var triggerRepository = new SimpleTriggerRepository(dbContext);
-
-        var trigger = await triggerRepository.FindAsync(triggerName);
+        var trigger = await dbContext.Triggers.FindAsync(triggerName);
         if (trigger is null)
         {
             return $"Триггера с именем <b>{trigger}</b> не существует.";
@@ -89,9 +86,7 @@ public sealed class GetTriggersCommand : BotCommand
     private async Task<string> FormatAllTriggers()
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var triggerRepository = new SimpleTriggerRepository(dbContext);
-
-        var triggers = await triggerRepository.GetDataAsync();
+        var triggers = await dbContext.Triggers.ToListAsync();
         if (triggers.Count == 0)
         {
             return "Триггеров не нашлось.";

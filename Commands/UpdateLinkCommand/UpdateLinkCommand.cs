@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+﻿using FluentValidation;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
+using StudyOrganizer.Models.Link;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
@@ -13,8 +15,9 @@ namespace UpdateLinkCommand;
 public sealed class UpdateLinkCommand : BotCommand
 {
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
+    private readonly IValidator<LinkInfo> _linkValidator;
 
-    public UpdateLinkCommand(PooledDbContextFactory<MyDbContext> dbContextFactory)
+    public UpdateLinkCommand(PooledDbContextFactory<MyDbContext> dbContextFactory, IValidator<LinkInfo> linkValidator)
     {
         Name = "updatelink";
         Description = "Обновляет информацию о ссылку в базе данных.";
@@ -25,6 +28,7 @@ public sealed class UpdateLinkCommand : BotCommand
         };
 
         _dbContextFactory = dbContextFactory;
+        _linkValidator = linkValidator;
     }
 
     public override async Task<UserResponse> ExecuteAsync(
@@ -51,46 +55,53 @@ public sealed class UpdateLinkCommand : BotCommand
 
         var name = arguments[0];
         var uri = arguments[1];
-        if (!Uri.IsWellFormedUriString(uri, UriKind.Absolute))
-        {
-            return UserResponseFactory.FailedParsing(Name);
-        }
-
         var description = arguments.Count == 2
             ? "Нет описания"
             : string.Join(' ', arguments.Skip(2));
 
-        return await UpdateLinkInDatabase(
+        var linkInfo = new LinkInfo(
             name,
-            uri,
-            description);
+            description,
+            uri);
+        var (isValid, response) = ValidateLink(linkInfo);
+        if (!isValid)
+        {
+            return response;
+        }
+
+        return await UpdateLinkInDatabase(linkInfo);
     }
 
-    private async Task<UserResponse> UpdateLinkInDatabase(
-        string name,
-        string newUri,
-        string newDescription)
+    private (bool, UserResponse) ValidateLink(LinkInfo linkInfo)
+    {
+        var result = _linkValidator.Validate(linkInfo);
+        if (!result.IsValid)
+        {
+            return (false, UserResponseFactory.FailedParsingSpecified(Name, result.ToString()));
+        }
+
+        return (true, default!);
+    }
+
+    private async Task<UserResponse> UpdateLinkInDatabase(LinkInfo linkInfo)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var link = await dbContext.Links.FindAsync(name);
+        var link = await dbContext.Links.FindAsync(linkInfo.Name);
         if (link is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "ссылка",
-                name);
+            return UserResponseFactory.LinkDoesNotExist(Name, linkInfo.Name);
         }
 
         var previousUri = link.Uri;
         var previousDescription = link.Description;
 
-        link.Uri = newUri;
-        link.Description = newDescription;
+        link.Uri = linkInfo.Uri;
+        link.Description = linkInfo.Description;
         await dbContext.SaveChangesAsync();
 
         return UserResponseFactory.Success(
-            $"Ссылка <b>{name}</b> изменена: \n" +
-            $"URI изменено с {previousUri} на {newUri}.\n" +
-            $"Описание изменено с '{previousDescription}' на '{newDescription}'.");
+            $"Ссылка <b>{linkInfo.Name}</b> изменена: \n" +
+            $"URI изменено с <code>{previousUri}</code> на {linkInfo.Uri}.\n" +
+            $"Описание изменено с '{previousDescription}' на '{linkInfo.Description}'.");
     }
 }

@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace YandexSpeechKitApi;
+namespace YandexSpeechKitApi.Contracts;
 
 public class SpeechToTextResponse
 {

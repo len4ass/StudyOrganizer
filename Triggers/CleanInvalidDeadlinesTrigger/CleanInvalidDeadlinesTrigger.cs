@@ -3,22 +3,15 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Quartz;
 using StudyOrganizer.Database;
 using StudyOrganizer.Services.TriggerService;
-using StudyOrganizer.Settings;
 using StudyOrganizer.Settings.SimpleTrigger;
-using Telegram.Bot;
 
 namespace CleanInvalidDeadlinesTrigger;
 
 public sealed class CleanInvalidDeadlinesTrigger : SimpleTrigger
 {
-    private readonly ITelegramBotClient _client;
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
-    private readonly GeneralSettings _settings;
 
-    public CleanInvalidDeadlinesTrigger(
-        ITelegramBotClient client,
-        PooledDbContextFactory<MyDbContext> dbContextFactory,
-        GeneralSettings settings)
+    public CleanInvalidDeadlinesTrigger(PooledDbContextFactory<MyDbContext> dbContextFactory)
     {
         Name = "deadline_cleaner";
         Description = "Удаляет истекшие дедлайны каждый день.";
@@ -32,9 +25,7 @@ public sealed class CleanInvalidDeadlinesTrigger : SimpleTrigger
             DayOfWeek = SimpleTriggerDayOfWeek.MON
         };
 
-        _client = client;
         _dbContextFactory = dbContextFactory;
-        _settings = settings;
     }
 
     public override async Task Execute(IJobExecutionContext context)
@@ -43,7 +34,7 @@ public sealed class CleanInvalidDeadlinesTrigger : SimpleTrigger
         var deadlines = await dbContext.Deadlines.ToListAsync();
 
         var expiredDeadlines = deadlines.Where(deadline => deadline.DateUtc < DateTimeOffset.UtcNow);
-        dbContext.RemoveRange(expiredDeadlines);
+        dbContext.Deadlines.RemoveRange(expiredDeadlines);
         await dbContext.SaveChangesAsync();
     }
 }

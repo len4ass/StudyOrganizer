@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.Deadline;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
@@ -61,19 +60,14 @@ public sealed class RemoveDeadlineCommand : BotCommand
     private async Task<UserResponse> DeleteDeadlineByName(string deadlineName)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var deadlineRepository = new DeadlineInfoRepository(dbContext);
-
-        var deadline = await deadlineRepository.FindAsync(deadlineName);
+        var deadline = await dbContext.Deadlines.FindAsync(deadlineName);
         if (deadline is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "дедлайн",
-                deadlineName);
+            return UserResponseFactory.DeadlineDoesNotExist(Name, deadlineName);
         }
 
-        await deadlineRepository.RemoveAsync(deadline);
-        await deadlineRepository.SaveAsync();
+        dbContext.Deadlines.Remove(deadline);
+        await dbContext.SaveChangesAsync();
 
         var userResponse = $"Дедлайн <b>{deadline.Name}</b> успешно удален из базы данных.";
         return UserResponseFactory.Success(userResponse);

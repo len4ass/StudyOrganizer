@@ -1,7 +1,9 @@
 ﻿using System.Text.RegularExpressions;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Helper;
+using StudyOrganizer.Models.Deadline;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Parsers;
 using StudyOrganizer.Services.BotService;
@@ -16,9 +18,13 @@ namespace UpdateDeadlineCommand;
 public sealed class UpdateDeadlineCommand : BotCommand
 {
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
+    private readonly IValidator<DeadlineInfo> _deadlineValidator;
     private readonly GeneralSettings _settings;
 
-    public UpdateDeadlineCommand(PooledDbContextFactory<MyDbContext> dbContextFactory, GeneralSettings settings)
+    public UpdateDeadlineCommand(
+        PooledDbContextFactory<MyDbContext> dbContextFactory,
+        IValidator<DeadlineInfo> deadlineValidator,
+        GeneralSettings settings)
     {
         Name = "updatedeadline";
         Description = "Обновляет информацию о дедлайне в базе данных.";
@@ -29,6 +35,7 @@ public sealed class UpdateDeadlineCommand : BotCommand
         };
 
         _dbContextFactory = dbContextFactory;
+        _deadlineValidator = deadlineValidator;
         _settings = settings;
     }
 
@@ -58,9 +65,7 @@ public sealed class UpdateDeadlineCommand : BotCommand
         var match = new Regex(RegexHelper.DateTimeRegex).Match(fullCommand);
         if (!match.Success)
         {
-            return UserResponseFactory.FailedParsingSpecified(
-                Name,
-                "в вашем вводе не содержится дата подходящего формата");
+            return UserResponseFactory.FailedParsingSpecified(Name, "Не найдено корректной даты.");
         }
 
         var name = arguments[0];
@@ -79,42 +84,55 @@ public sealed class UpdateDeadlineCommand : BotCommand
         }
 
         var dateTimeOffset = TextParser.ParseDateTime(dateTimeString, _settings.ChatTimeZoneUtc);
-        if (dateTimeOffset is null || dateTimeOffset < DateTimeOffset.UtcNow)
+        if (dateTimeOffset is null)
         {
-            return UserResponseFactory.FailedParsingSpecified(Name, "указанная вами дата некорректна.");
+            return UserResponseFactory.FailedParsingSpecified(Name, "Не удалось конвертировать дату.");
         }
 
-        return await UpdateDeadlineInDatabase(
+        var deadlineInfo = new DeadlineInfo(
             name,
-            dateTimeOffset.Value,
-            description);
+            description,
+            dateTimeOffset.Value);
+        var (isValid, response) = ValidateDeadline(deadlineInfo);
+        if (!isValid)
+        {
+            return response;
+        }
+
+        return await UpdateDeadlineInDatabase(deadlineInfo);
     }
 
-    private async Task<UserResponse> UpdateDeadlineInDatabase(
-        string name,
-        DateTimeOffset newDateTimeUtc,
-        string newDescription)
+    private (bool, UserResponse) ValidateDeadline(DeadlineInfo deadlineInfo)
+    {
+        var result = _deadlineValidator.Validate(deadlineInfo);
+        if (!result.IsValid)
+        {
+            return (false, UserResponseFactory.FailedParsingSpecified(Name, result.ToString()));
+        }
+
+        return (true, default!);
+    }
+
+    private async Task<UserResponse> UpdateDeadlineInDatabase(DeadlineInfo deadlineInfo)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var deadlineInDatabase = await dbContext.Deadlines.FindAsync(name);
+        var deadlineInDatabase = await dbContext.Deadlines.FindAsync(deadlineInfo.Name);
         if (deadlineInDatabase is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "дедлайн",
-                name);
+            return UserResponseFactory.DeadlineDoesNotExist(Name, deadlineInfo.Name);
         }
 
         var previousDescription = deadlineInDatabase.Description;
         var previousDateUtc = deadlineInDatabase.DateUtc;
 
-        deadlineInDatabase.Description = newDescription;
-        deadlineInDatabase.DateUtc = newDateTimeUtc;
+        deadlineInDatabase.Description = deadlineInfo.Description;
+        deadlineInDatabase.DateUtc = deadlineInfo.DateUtc;
         await dbContext.SaveChangesAsync();
 
         return UserResponseFactory.Success(
-            $"Дедлайн <b>{name}</b> изменен: \n" +
-            $"Дата изменена с {previousDateUtc.UtcDateTime:dd.MM.yyyy HH:mm:ss} (UTC) на {newDateTimeUtc.UtcDateTime:dd.MM.yyyy HH:mm:ss} (UTC).\n" +
-            $"Описание изменено с '{previousDescription}' на '{newDescription}'");
+            $"Дедлайн <b>{deadlineInDatabase.Name}</b> изменен: \n" +
+            $"Дата изменена с {previousDateUtc.UtcDateTime:dd.MM.yyyy HH:mm:ss} (UTC) на " +
+            $"{deadlineInfo.DateUtc:dd.MM.yyyy HH:mm:ss} (UTC).\n" +
+            $"Описание изменено с '{previousDescription}' на '{deadlineInfo.Description}'.");
     }
 }

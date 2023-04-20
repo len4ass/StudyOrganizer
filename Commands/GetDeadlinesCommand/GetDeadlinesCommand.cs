@@ -1,9 +1,9 @@
 ﻿using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.Deadline;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.Deadline;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
@@ -55,17 +55,16 @@ public sealed class GetDeadlinesCommand : BotCommand
         }
 
         var validDeadlines = await ExtractValidDeadlines();
-        var sortedDeadlines = validDeadlines.OrderBy(deadline => deadline.DateUtc);
+        var sortedDeadlines = validDeadlines.OrderBy(deadline => deadline.DateUtc)
+            .ToList();
         var deadlinesString = BuildDeadlineString(sortedDeadlines);
         return UserResponseFactory.Success(deadlinesString);
     }
 
-    private async Task<IEnumerable<DeadlineInfo>> ExtractValidDeadlines()
+    private async Task<IList<DeadlineInfo>> ExtractValidDeadlines()
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var deadlineRepository = new DeadlineInfoRepository(dbContext);
-
-        var allDeadlines = await deadlineRepository.GetDataAsync();
+        var allDeadlines = await dbContext.Deadlines.ToListAsync();
         return allDeadlines.Where(deadline => deadline.DateUtc > DateTimeOffset.UtcNow)
             .ToList();
     }
@@ -75,23 +74,17 @@ public sealed class GetDeadlinesCommand : BotCommand
         return $"<b>{index}</b>. {deadline.ToString(_settings.ChatTimeZoneUtc)}";
     }
 
-    private string BuildDeadlineString(IOrderedEnumerable<DeadlineInfo> deadlines)
+    private string BuildDeadlineString(IList<DeadlineInfo> deadlines)
     {
-        var index = 1;
-        var sb = new StringBuilder("Список текущих дедлайнов: \n\n");
-        foreach (var deadline in deadlines)
-        {
-            var deadlineString = GetDeadlineString(deadline, index);
-            if (deadlineString != string.Empty)
-            {
-                sb.AppendLine(deadlineString);
-                index++;
-            }
-        }
-
-        if (index == 1)
+        if (deadlines.Count == 0)
         {
             return "Дедлайнов нет :)";
+        }
+
+        var sb = new StringBuilder("Список текущих дедлайнов: \n\n");
+        for (var i = 0; i < deadlines.Count; i++)
+        {
+            sb.AppendLine(GetDeadlineString(deadlines[i], i + 1));
         }
 
         return sb.ToString();

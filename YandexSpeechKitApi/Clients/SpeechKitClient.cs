@@ -1,21 +1,22 @@
 ﻿using System.Text.Json;
+using YandexSpeechKitApi.Contracts;
 
-namespace YandexSpeechKitApi;
+namespace YandexSpeechKitApi.Clients;
 
 public class SpeechKitClient : ISpeechKitClient
 {
-    private readonly CommonUri _commonUri;
+    private readonly Endpoints _endpoints;
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
 
     public SpeechKitClient(
         string apiKey,
-        CommonUri? commonUri = null)
+        Endpoints? commonUri = null)
     {
         _httpClient = new HttpClient();
         _apiKey = apiKey;
 
-        _commonUri = commonUri ?? new CommonUri();
+        _endpoints = commonUri ?? new Endpoints();
     }
 
     public async Task<SpeechToTextResponse> SpeechToTextAsync(
@@ -33,7 +34,7 @@ public class SpeechKitClient : ISpeechKitClient
         };
 
         var queryString = string.Join("&", queryParams.Select(pair => $"{pair.Key}={pair.Value}"));
-        var uri = new Uri($"{_commonUri.SpeechToText}?{queryString}");
+        var uri = new Uri($"{_endpoints.SpeechToText}?{queryString}");
         var request = new HttpRequestMessage(HttpMethod.Post, uri);
 
         await using var memoryStream = new MemoryStream(byteMedia);

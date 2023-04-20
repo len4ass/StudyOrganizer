@@ -3,6 +3,8 @@ using StudyOrganizer.Models.User;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
 using YandexSpeechKitApi;
+using YandexSpeechKitApi.Clients;
+using YandexSpeechKitApi.Contracts;
 
 namespace StudyOrganizer.Services.YandexSpeechKit;
 
@@ -15,38 +17,19 @@ public class YandexSpeechAnalyzer
         _speechKitClient = speechKitClient;
     }
 
-    public async Task<UserResponse> SpeechToText(byte[] audioBytes, CancellationToken cts)
+    public async Task<UserResponse?> SpeechToText(byte[] audioBytes, CancellationToken cts)
     {
         var result = await _speechKitClient.SpeechToTextAsync(audioBytes, cts);
-        if (result.TransportCode != HttpTransportCode.Ok)
+        if (result.TransportCode != HttpTransportCode.Ok || result.StatusCode != HttpStatusCode.OK)
         {
-            return new UserResponse
-            {
-                //InternalResponse =
-                //$"Не удалось доставить голосовое сообщение пользователя {user.Handle} ({user.Id}) до сервера."
-            };
-        }
-
-        if (result.StatusCode != HttpStatusCode.OK)
-        {
-            return new UserResponse
-            {
-                //InternalResponse =
-                //$"При обработке голосового сообщения пользователя {user.Handle} ({user.Id}) произошла ошибка при получении ответа."
-            };
+            return null;
         }
 
         if (result.Result is null)
         {
-            return new UserResponse
-            {
-                //InternalResponse = $"Не удалось произвести обработку голосового сообщения {user.Handle} ({user.Id})."
-            };
+            return null;
         }
 
-        return new UserResponse
-        {
-            Response = result.Result.Result
-        };
+        return new UserResponse(result.Result.Result);
     }
 }

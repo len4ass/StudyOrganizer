@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace YandexSpeechKitApi;
+namespace YandexSpeechKitApi.Contracts;
 
 public class SpeechToTextResult
 {

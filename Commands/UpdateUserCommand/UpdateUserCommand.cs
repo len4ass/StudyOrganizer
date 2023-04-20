@@ -3,6 +3,7 @@ using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
+using StudyOrganizer.Extensions;
 using StudyOrganizer.Formatters;
 using StudyOrganizer.Loaders;
 using StudyOrganizer.Models.User;
@@ -93,10 +94,7 @@ public sealed class UpdateUserCommand : BotCommand
         var user = await dbContext.Users.FindAsync(id);
         if (user is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "пользователь с id",
-                id.ToString());
+            return UserResponseFactory.UserDoesNotExist(Name, id.ToString());
         }
 
         var response = UpdateUserData(
@@ -117,10 +115,7 @@ public sealed class UpdateUserCommand : BotCommand
         var user = await dbContext.Users.FirstOrDefaultAsync(user => user.Handle == handle);
         if (user is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "пользователь с хэндлом",
-                handle);
+            return UserResponseFactory.UserDoesNotExist(Name, handle);
         }
 
         var response = UpdateUserData(
@@ -132,13 +127,14 @@ public sealed class UpdateUserCommand : BotCommand
         return response;
     }
 
-    private UserDto GetUserDtoFromKeyValuePairs(IList<string> arguments)
+    private UserDto CreateUserDtoFromKeyValuePairs(UserDto previousUserDto, IList<string> arguments)
     {
         var propertyDictionary = arguments.ToDictionary(
             s => s.Split(':')[0],
             s => s.Split(':')[1]);
 
-        return UserDto.GetUserDtoFromKeyValuePairs(propertyDictionary);
+        return previousUserDto.Adapt<UserDto>()
+            .UpdateWithDictionary(propertyDictionary);
     }
 
     private UserResponse GetFormattedUpdateUserResponse(
@@ -172,7 +168,7 @@ public sealed class UpdateUserCommand : BotCommand
         }
 
         var previousUserDto = userToUpdate.Adapt<UserDto>();
-        var newUserDto = GetUserDtoFromKeyValuePairs(arguments);
+        var newUserDto = CreateUserDtoFromKeyValuePairs(previousUserDto, arguments);
         var (isValid, response) = ValidateUserDto(newUserDto);
         if (!isValid)
         {

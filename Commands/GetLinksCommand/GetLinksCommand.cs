@@ -1,8 +1,9 @@
 ﻿using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
+using StudyOrganizer.Models.Link;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.Link;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
@@ -55,12 +56,15 @@ public sealed class GetLinksCommand : BotCommand
         return UserResponseFactory.Success(userResponse);
     }
 
+    private string GetLinkString(LinkInfo link, int index)
+    {
+        return $"<b>{index}</b>. {link}";
+    }
+
     private async Task<string> FormatAllLinks()
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var linkRepository = new LinkInfoRepository(dbContext);
-
-        var links = await linkRepository.GetDataAsync();
+        var links = await dbContext.Links.ToListAsync();
         if (links.Count == 0)
         {
             return "Ссылок не нашлось.";
@@ -69,7 +73,7 @@ public sealed class GetLinksCommand : BotCommand
         var sb = new StringBuilder("Список всех ссылок: \n\n");
         for (var i = 0; i < links.Count; i++)
         {
-            sb.AppendLine($"<b>{i + 1}</b>. {links[i]}");
+            sb.AppendLine(GetLinkString(links[i], i + 1));
         }
 
         return sb.ToString();

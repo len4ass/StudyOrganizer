@@ -24,15 +24,15 @@ public sealed class UpdateTriggerCommand : BotCommand
 {
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
     private readonly CronJobAggregator _cronJobAggregator;
-    private readonly IScheduler _scheduler;
     private readonly WorkingPaths _workingPaths;
+    private readonly IScheduler _scheduler;
     private readonly IValidator<TriggerSettings> _triggerSettingsValidator;
 
     public UpdateTriggerCommand(
         PooledDbContextFactory<MyDbContext> dbContextFactory,
         CronJobAggregator cronJobAggregator,
-        IScheduler scheduler,
         WorkingPaths workingPaths,
+        IScheduler scheduler,
         IValidator<TriggerSettings> triggerSettingsValidator)
     {
         Name = "updatetrigger";
@@ -83,7 +83,7 @@ public sealed class UpdateTriggerCommand : BotCommand
             s => s.Split(':')[0],
             s => s.Split(':')[1]);
 
-        ReflectionHelper.ParseAndMapKeyValuePairsOnObject(triggerSettings, propertyDictionary);
+        triggerSettings.UpdateWithDictionary(propertyDictionary);
     }
 
     private async Task SaveSettingsToFile(TriggerInfo triggerInfo)
@@ -129,10 +129,7 @@ public sealed class UpdateTriggerCommand : BotCommand
         var trigger = await dbContext.Triggers.FindAsync(arguments[0]);
         if (trigger is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "триггер",
-                arguments[0]);
+            return UserResponseFactory.TriggerDoesNotExistInDatabase(Name, arguments[0]);
         }
 
         var previousSettings = trigger.Settings.Adapt<TriggerSettings>();

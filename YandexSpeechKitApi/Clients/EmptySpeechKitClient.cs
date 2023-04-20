@@ -1,4 +1,6 @@
-namespace YandexSpeechKitApi;
+using YandexSpeechKitApi.Contracts;
+
+namespace YandexSpeechKitApi.Clients;
 
 public class EmptySpeechKitClient : ISpeechKitClient
 {

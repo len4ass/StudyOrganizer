@@ -12,6 +12,8 @@ using StudyOrganizer.Database;
 using StudyOrganizer.Extensions;
 using StudyOrganizer.Loaders;
 using StudyOrganizer.Models.Command;
+using StudyOrganizer.Models.Deadline;
+using StudyOrganizer.Models.Link;
 using StudyOrganizer.Models.Trigger;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Services;
@@ -27,10 +29,13 @@ using StudyOrganizer.Services.YandexSpeechKit;
 using StudyOrganizer.Settings;
 using StudyOrganizer.Settings.SimpleTrigger;
 using StudyOrganizer.Validators.Command;
+using StudyOrganizer.Validators.Deadline;
+using StudyOrganizer.Validators.Link;
 using StudyOrganizer.Validators.Trigger;
 using StudyOrganizer.Validators.User;
 using Telegram.Bot;
 using YandexSpeechKitApi;
+using YandexSpeechKitApi.Clients;
 using IContainer = Autofac.IContainer;
 
 namespace StudyOrganizer;
@@ -91,19 +96,24 @@ public class Startup
 
     private void ConfigureValidators()
     {
-        var triggerSettingsValidator = new TriggerSettingsValidator();
-        _containerBuilder.RegisterInstance(triggerSettingsValidator)
+        _containerBuilder.RegisterInstance(new CommandSettingsValidator())
+            .As<IValidator<CommandSettings>>()
+            .SingleInstance();
+
+        _containerBuilder.RegisterInstance(new TriggerSettingsValidator())
             .As<IValidator<TriggerSettings>>()
             .SingleInstance();
 
-        var userDtoValidator = new UserDtoValidator();
-        _containerBuilder.RegisterInstance(userDtoValidator)
+        _containerBuilder.RegisterInstance(new UserDtoValidator())
             .As<IValidator<UserDto>>()
             .SingleInstance();
 
-        var commandSettingsValidator = new CommandSettingsValidator();
-        _containerBuilder.RegisterInstance(commandSettingsValidator)
-            .As<IValidator<CommandSettings>>()
+        _containerBuilder.RegisterInstance(new DeadlineValidator())
+            .As<IValidator<DeadlineInfo>>()
+            .SingleInstance();
+
+        _containerBuilder.RegisterInstance(new LinkValidator())
+            .As<IValidator<LinkInfo>>()
             .SingleInstance();
     }
 

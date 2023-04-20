@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.User;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
@@ -62,7 +61,7 @@ public sealed class AddUserCommand : BotCommand
             var parsedId = long.TryParse(arguments[0], out var id);
             if (!parsedId)
             {
-                UserResponseFactory.FailedParsing(Name);
+                UserResponseFactory.FailedParsingSpecified(Name, "Не удалось получить id пользователя.");
             }
 
             return await AddUserToDatabase(
@@ -83,15 +82,10 @@ public sealed class AddUserCommand : BotCommand
         {
             var chatMember = await client.GetChatMemberAsync(message.Chat, id);
             await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-            var userRepository = new UserInfoRepository(dbContext);
-
-            var user = await userRepository.FindAsync(id);
+            var user = await dbContext.Users.FindAsync(id);
             if (user is not null)
             {
-                return UserResponseFactory.EntryAlreadyExists(
-                    Name,
-                    "пользователь с id",
-                    id.ToString());
+                return UserResponseFactory.UserAlreadyExists(Name, user.Handle ?? user.Name);
             }
 
             var newUser = new UserInfo
@@ -102,11 +96,9 @@ public sealed class AddUserCommand : BotCommand
                 Level = AccessLevel.Normal
             };
 
-            await userRepository.AddAsync(newUser);
-            await userRepository.SaveAsync();
-
+            await dbContext.Users.AddAsync(newUser);
             var userResponse =
-                $"Пользователь {newUser.Handle ?? newUser.Name} ({newUser.Id}) успешно добавлен в базу данных";
+                $"Пользователь {newUser.Handle ?? newUser.Name} ({newUser.Id}) успешно добавлен в базу данных.";
             return UserResponseFactory.Success(userResponse);
         }
         catch (ApiRequestException)

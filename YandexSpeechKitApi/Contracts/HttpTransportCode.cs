@@ -1,4 +1,4 @@
-namespace YandexSpeechKitApi;
+namespace YandexSpeechKitApi.Contracts;
 
 public enum HttpTransportCode
 {

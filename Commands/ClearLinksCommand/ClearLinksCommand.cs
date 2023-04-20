@@ -48,10 +48,7 @@ public sealed class ClearLinksCommand : BotCommand
 
         if (message.From!.IsBot && arguments.Count == 1 && arguments[0] == "Нет")
         {
-            var clearResponse = new UserResponse
-            {
-                Response = "Удаление ссылок отменено."
-            };
+            var clearResponse = new UserResponse("Удаление ссылок отменено.");
 
             await BotMessager.EditMessage(
                 client,

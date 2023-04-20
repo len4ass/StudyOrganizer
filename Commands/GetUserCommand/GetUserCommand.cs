@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.User;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
@@ -75,15 +75,10 @@ public sealed class GetUserCommand : BotCommand
     private async Task<UserResponse> GetUserById(long id)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var userRepository = new UserInfoRepository(dbContext);
-
-        var user = await userRepository.FindAsync(id);
+        var user = await dbContext.Users.FindAsync(id);
         if (user is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "пользователь с id",
-                id.ToString());
+            return UserResponseFactory.UserDoesNotExist(Name, id.ToString());
         }
 
         return UserResponseFactory.Success(user.ToString());
@@ -92,15 +87,10 @@ public sealed class GetUserCommand : BotCommand
     private async Task<UserResponse> GetUserByHandle(string handle)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var userRepository = new UserInfoRepository(dbContext);
-
-        var user = await userRepository.FindAsync(handle);
+        var user = await dbContext.Users.FirstOrDefaultAsync(user => user.Handle == handle);
         if (user is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "пользователь с хэндлом",
-                handle);
+            return UserResponseFactory.UserDoesNotExist(Name, handle);
         }
 
         return UserResponseFactory.Success(user.ToString());

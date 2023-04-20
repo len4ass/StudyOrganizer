@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+﻿using FluentValidation;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.Link;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.Link;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
@@ -15,8 +15,9 @@ namespace AddLinkCommand;
 public sealed class AddLinkCommand : BotCommand
 {
     private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
+    private readonly IValidator<LinkInfo> _linkValidator;
 
-    public AddLinkCommand(PooledDbContextFactory<MyDbContext> dbContextFactory)
+    public AddLinkCommand(PooledDbContextFactory<MyDbContext> dbContextFactory, IValidator<LinkInfo> linkValidator)
     {
         Name = "addlink";
         Description = "Добавляет ссылку в базу данных по имени, uri и описанию.";
@@ -27,6 +28,7 @@ public sealed class AddLinkCommand : BotCommand
         };
 
         _dbContextFactory = dbContextFactory;
+        _linkValidator = linkValidator;
     }
 
     public override async Task<UserResponse> ExecuteAsync(
@@ -53,45 +55,44 @@ public sealed class AddLinkCommand : BotCommand
 
         var name = arguments[0];
         var uri = arguments[1];
-        if (!Uri.IsWellFormedUriString(uri, UriKind.Absolute))
-        {
-            return UserResponseFactory.FailedParsing(Name);
-        }
-
         var description = arguments.Count == 2
             ? "Нет описания"
             : string.Join(' ', arguments.Skip(2));
 
-        return await AddLinkToDatabase(
+        var linkInfo = new LinkInfo(
             name,
-            uri,
-            description);
-    }
-
-    private async Task<UserResponse> AddLinkToDatabase(
-        string name,
-        string uri,
-        string description)
-    {
-        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var linkRepository = new LinkInfoRepository(dbContext);
-
-        var link = await linkRepository.FindAsync(name);
-        if (link is not null)
+            description,
+            uri);
+        var (isValid, response) = ValidateLink(linkInfo);
+        if (!isValid)
         {
-            return UserResponseFactory.EntryAlreadyExists(
-                Name,
-                "ссылка",
-                name);
+            return response;
         }
 
-        await linkRepository.AddAsync(
-            new LinkInfo(
-                name,
-                description,
-                uri));
-        await linkRepository.SaveAsync();
+        return await AddLinkToDatabase(linkInfo);
+    }
 
-        return UserResponseFactory.Success($"Ссылка <b>{name}</b> успешно добавлена в базу данных.");
+    private (bool, UserResponse) ValidateLink(LinkInfo linkInfo)
+    {
+        var result = _linkValidator.Validate(linkInfo);
+        if (!result.IsValid)
+        {
+            return (false, UserResponseFactory.FailedParsingSpecified(Name, result.ToString()));
+        }
+
+        return (true, default!);
+    }
+
+    private async Task<UserResponse> AddLinkToDatabase(LinkInfo linkInfo)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var link = await dbContext.Links.FindAsync(linkInfo.Name);
+        if (link is not null)
+        {
+            return UserResponseFactory.LinkAlreadyExists(Name, linkInfo.Name);
+        }
+
+        await dbContext.Links.AddAsync(linkInfo);
+        return UserResponseFactory.Success($"Ссылка <b>{linkInfo.Name}</b> успешно добавлена в базу данных.");
     }
 }

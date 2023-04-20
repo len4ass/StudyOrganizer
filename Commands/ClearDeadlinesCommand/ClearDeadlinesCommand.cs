@@ -48,10 +48,7 @@ public sealed class ClearDeadlinesCommand : BotCommand
 
         if (message.From!.IsBot && arguments.Count == 1 && arguments[0] == "Нет")
         {
-            var clearResponse = new UserResponse
-            {
-                Response = "Удаление дедлайнов отменено."
-            };
+            var clearResponse = new UserResponse("Удаление дедлайнов отменено.");
 
             await BotMessager.EditMessage(
                 client,

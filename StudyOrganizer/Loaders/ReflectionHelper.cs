@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Reflection;
+using System.Text.Json;
 using Mapster;
+using StudyOrganizer.Helper.Serializers;
 using StudyOrganizer.Models.User;
 
 namespace StudyOrganizer.Loaders;
@@ -75,9 +77,20 @@ public static class ReflectionHelper
             .ToList();
     }
 
-    public static void ParseAndMapKeyValuePairsOnObject<T>(T obj, IDictionary<string, string> propertyNameValuePairs)
+    public static T? ParseAndMapKeyValuePairsOnObject<T>(IDictionary<string, string> propertyNameValuePairs)
+        where T : class, new()
     {
-        var properties = GetProperties(typeof(T));
+        var jsonString = JsonSerializer.Serialize(propertyNameValuePairs);
+        return JsonSerializer.Deserialize<T>(jsonString);
+    }
+
+    public static void ConvertAndMapKeyValuePairsOnObject<T>(T obj, IDictionary<string, string> propertyNameValuePairs)
+    {
+        var properties = typeof(T).GetProperties(
+            BindingFlags.Public |
+            BindingFlags.NonPublic |
+            BindingFlags.Instance);
+
         foreach (var property in properties)
         {
             if (!propertyNameValuePairs.ContainsKey(property.Name))

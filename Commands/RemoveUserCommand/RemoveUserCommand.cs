@@ -69,24 +69,20 @@ public sealed class RemoveUserCommand : BotCommand
     private async Task<UserResponse> RemoveUserFromDatabaseById(long id)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var userRepository = new UserInfoRepository(dbContext);
-
-        var user = await userRepository.FindAsync(id);
+        var user = await dbContext.Users.FindAsync(id);
         if (user is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "пользователь с id",
-                id.ToString());
+            return UserResponseFactory.UserDoesNotExist(Name, id.ToString());
         }
 
         var userId = user.Id;
-        var userHandle = user.Handle;
-        await userRepository.RemoveAsync(user);
-        await userRepository.SaveAsync();
+        var userHandle = user.Handle ?? user.Name;
+
+        dbContext.Users.Remove(user);
+        await dbContext.SaveChangesAsync();
 
         var userResponse =
-            $"Пользователь {userHandle ?? "unknown"} ({userId}) успешно удален из базы данных.";
+            $"Пользователь <b>{userHandle}</b> ({userId}) успешно удален из базы данных.";
 
         return UserResponseFactory.Success(userResponse);
     }
@@ -99,19 +95,16 @@ public sealed class RemoveUserCommand : BotCommand
         var user = await userRepository.FindAsync(handle);
         if (user is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "пользователь с хэндлом",
-                handle);
+            return UserResponseFactory.UserDoesNotExist(Name, handle);
         }
 
         var userId = user.Id;
-        var userHandle = user.Handle;
+        var userHandle = user.Handle ?? user.Name;
         await userRepository.RemoveAsync(user);
         await userRepository.SaveAsync();
 
         var userResponse =
-            $"Пользователь {userHandle ?? "unknown name"} ({userId}) успешно удален из базы данных.";
+            $"Пользователь <b>{userHandle}</b> ({userId}) успешно удален из базы данных.";
 
         return UserResponseFactory.Success(userResponse);
     }

@@ -1,5 +1,4 @@
 using Mapster;
-using StudyOrganizer.Loaders;
 
 namespace StudyOrganizer.Models.User;
 
@@ -11,11 +10,4 @@ public class UserDto
     public bool CoolestOfTheDay { get; set; }
     public int WonCOTD { get; set; }
     public DateOnly? Birthday { get; set; }
-
-    public static UserDto GetUserDtoFromKeyValuePairs(IDictionary<string, string> keyValuePairs)
-    {
-        var userDto = new UserDto();
-        ReflectionHelper.ParseAndMapKeyValuePairsOnObject(userDto, keyValuePairs);
-        return userDto;
-    }
 }

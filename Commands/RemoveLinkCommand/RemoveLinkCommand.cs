@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.Link;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
@@ -61,19 +60,14 @@ public sealed class RemoveLinkCommand : BotCommand
     private async Task<UserResponse> DeleteLinkByName(string linkName)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var linkRepository = new LinkInfoRepository(dbContext);
-
-        var link = await linkRepository.FindAsync(linkName);
+        var link = await dbContext.Links.FindAsync(linkName);
         if (link is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "ссылка",
-                linkName);
+            return UserResponseFactory.LinkDoesNotExist(Name, linkName);
         }
 
-        await linkRepository.RemoveAsync(link);
-        await linkRepository.SaveAsync();
+        dbContext.Links.Remove(link);
+        await dbContext.SaveChangesAsync();
 
         var userResponse = $"Ссылка <b>{link.Name}</b> успешно удалена из базы данных.";
         return UserResponseFactory.Success(userResponse);

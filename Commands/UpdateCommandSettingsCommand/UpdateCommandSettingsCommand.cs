@@ -3,6 +3,7 @@ using Mapster;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer;
 using StudyOrganizer.Database;
+using StudyOrganizer.Extensions;
 using StudyOrganizer.Formatters;
 using StudyOrganizer.Loaders;
 using StudyOrganizer.Models.Command;
@@ -78,7 +79,7 @@ public class UpdateCommandSettingsCommand : BotCommand
             s => s.Split(':')[0],
             s => s.Split(':')[1]);
 
-        ReflectionHelper.ParseAndMapKeyValuePairsOnObject(commandSettings, propertyDictionary);
+        commandSettings.UpdateWithDictionary(propertyDictionary);
     }
 
     private async Task SaveSettingsToFile(CommandInfo commandInfo)
@@ -114,10 +115,7 @@ public class UpdateCommandSettingsCommand : BotCommand
         var command = await dbContext.Commands.FindAsync(arguments[0]);
         if (command is null)
         {
-            return UserResponseFactory.EntryDoesNotExist(
-                Name,
-                "команда",
-                arguments[0]);
+            return UserResponseFactory.CommandDoesNotExistInDatabase(Name, arguments[0]);
         }
 
         var previousSettings = command.Settings.Adapt<CommandSettings>();

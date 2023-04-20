@@ -17,21 +17,36 @@ public static class UserResponses
     public const string FailedToParseArgumentsSpecified =
         "Не удалось использовать команду <b>{0}</b>: не удалось пропарсить аргументы. \n{1}";
 
-    public const string EntryAlreadyExists = "Не удалось использовать команду <b>{0}</b>: {1} {2} уже существует.";
+    public const string CommandDoesNotExistInDatabase =
+        "Не удалось использовать команду <b>{0}</b>: команда с именем {1} не существует.";
 
-    public const string EntryDoesNotExist = "Не удалось использовать команду <b>{0}</b>: {1} {2} не существует.";
+    public const string TriggerDoesNotExistInDatabase =
+        "Не удалось использовать команду <b>{0}</b>: триггер с именем {1} не существует.";
+
+    public const string UserAlreadyExists =
+        "Не удалось использовать команду <b>{0}</b>: пользователь {1} уже существует.";
+
+    public const string UserDoesNotExist =
+        "Не удалось использовать команду <b>{0}</b>: пользователь {1} не существует.";
+
+    public const string LinkAlreadyExists =
+        "Не удалось использовать команду <b>{0}</b>: ссылка {1} уже существует.";
+
+    public const string LinkDoesNotExist =
+        "Не удалось использовать команду <b>{0}</b>: ссылка {1} не существует.";
+
+    public const string DeadlineAlreadyExists =
+        "Не удалось использовать команду <b>{0}</b>: дедлайн {1} уже существует.";
+
+    public const string DeadlineDoesNotExist =
+        "Не удалось использовать команду <b>{0}</b>: дедлайн {1} не существует.";
 
     public const string FailedAnalizingText =
-        "Не удалось использовать команду <b>{0}</b>: не удалось проанализировать ваше сообщение";
-
-    public const string InvalidUri = "Не удалось использовать команду <b>{0}</b>: указана некорректная ссылка.";
+        "Не удалось использовать команду <b>{0}</b>: не удалось проанализировать ваше сообщение.";
 
     public const string ApiRequestFailed =
         "Не удалось использовать команду <b>{0}</b>: произошла ошибка API телеграма.";
 
     public const string CanNotChangeOwnData =
         "Не удалось использовать команду <b>{0}</b>: нельзя менять информацию о самом себе.";
-
-    public const string InvalidTimeZoneInfo =
-        "Не удалось использовать команду <b>{0}</b>: указана некорректная таймзона чата.";
 }

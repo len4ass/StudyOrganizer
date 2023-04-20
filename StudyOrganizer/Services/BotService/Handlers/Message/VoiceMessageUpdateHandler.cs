@@ -121,7 +121,7 @@ public class VoiceMessageUpdateHandler : IUpdateHandler<Telegram.Bot.Types.Messa
         }
 
         var response = await _yandexSpeechAnalyzer.SpeechToText(audioBytes, CancellationToken.None);
-        if (response.Response == string.Empty)
+        if (response is null)
         {
             return new BotResponse
             {
