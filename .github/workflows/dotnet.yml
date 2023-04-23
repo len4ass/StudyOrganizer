@@ -17,19 +17,20 @@ jobs:
 
     # A sequence of tasks that will execute as part of the job
     steps:
+      - name: Stop StudyOrganizer and delete container
+        run: |
+          docker stop SORG
+          docker rm SORG
+    
       # Checks out repository so our job can access it
       - uses: actions/checkout@v2
       - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
         uses: actions/setup-dotnet@v1.7.2
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
-
-      - name: Install dependencies
-        run: dotnet restore
-
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
-
-      # We will output publish files to the folder we previously created
-      - name: Publish
-        run: dotnet publish -c Release -o /var/deploy/StudyOrganizer
+          
+      - name: Build docker image
+        run: docker build -t study_organizer -f Dockerfile .
+        
+      - name: Run application
+        run: docker run -v /var/deploy/StudyOrganizer/binaries:/app --name SORG -it -e 'BOT_TOKEN=${{ secrets.BOT_TOKEN }}' -e 'YANDEX_CLOUD_TOKEN=${{ secrets.YANDEX_CLOUD_TOKEN }}' -e 'OPEN_API_TOKEN=${{ secrets.OPEN_API_TOKEN }}' -d study_organizer ../settings.json ../commands_settings ../trigger_settings ../db/bot_data.db
