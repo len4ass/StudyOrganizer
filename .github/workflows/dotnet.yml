@@ -21,9 +21,9 @@ jobs:
         run: docker stop SORG || true && docker rm SORG || true
     
       # Checks out repository so our job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
-        uses: actions/setup-dotnet@v1.7.2
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
           
@@ -31,4 +31,4 @@ jobs:
         run: docker build -t study_organizer -f Dockerfile .
         
       - name: Run application
-        run: docker run -v /var/deploy/StudyOrganizer/binaries:/app --restart unless-stopped --name SORG -it -e 'BOT_TOKEN=${{ secrets.BOT_TOKEN }}' -e 'YANDEX_CLOUD_TOKEN=${{ secrets.YANDEX_CLOUD_TOKEN }}' -e 'OPEN_API_TOKEN=${{ secrets.OPEN_API_TOKEN }}' -d study_organizer ../settings.json ../commands_settings ../trigger_settings ../db/bot_data.db
+        run: docker run -v /var/deploy/StudyOrganizer/binaries:/app/out --restart unless-stopped --name SORG -it -e 'BOT_TOKEN=${{ secrets.BOT_TOKEN }}' -e 'YANDEX_CLOUD_TOKEN=${{ secrets.YANDEX_CLOUD_TOKEN }}' -e 'OPEN_API_TOKEN=${{ secrets.OPEN_API_TOKEN }}' -d study_organizer ../settings.json ../commands_settings ../trigger_settings ../db/bot_data.db
