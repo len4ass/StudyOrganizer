@@ -1,9 +1,10 @@
-using StudyOrganizer.Bot;
-using StudyOrganizer.Enum;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Serilog;
+using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Parsers;
-using StudyOrganizer.Repositories.Master;
-using StudyOrganizer.Repositories.User;
+using StudyOrganizer.Services.BotService.Command;
+using StudyOrganizer.Services.BotService.Handlers.Message;
+using StudyOrganizer.Services.BotService.Handlers.Query;
 using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
@@ -14,131 +15,220 @@ namespace StudyOrganizer.Services.BotService;
 
 public class BotService : IService
 {
-    private readonly IMasterRepository _masterRepository;
-    private readonly GeneralSettings _generalSettings;
+    private readonly PooledDbContextFactory<MyDbContext> _dbContextFactory;
+    private readonly MessageUpdateHandler _messageUpdateHandler;
+    private readonly CallbackQueryUpdateHandler _callbackQueryUpdateHandler;
     private readonly BotCommandAggregator _botCommandAggregator;
+    private readonly GeneralSettings _generalSettings;
     private readonly ITelegramBotClient _client;
 
     public BotService(
-        IMasterRepository masterRepository, 
-        GeneralSettings generalSettings, 
+        PooledDbContextFactory<MyDbContext> dbContextFactory,
+        MessageUpdateHandler messageUpdateHandler,
+        CallbackQueryUpdateHandler callbackQueryUpdateHandler,
         BotCommandAggregator botCommandAggregator,
+        GeneralSettings generalSettings,
         ITelegramBotClient client)
     {
-        _masterRepository = masterRepository;
-        _generalSettings = generalSettings;
+        _dbContextFactory = dbContextFactory;
+        _messageUpdateHandler = messageUpdateHandler;
+        _callbackQueryUpdateHandler = callbackQueryUpdateHandler;
         _botCommandAggregator = botCommandAggregator;
+        _generalSettings = generalSettings;
         _client = client;
     }
 
-    public void Start()
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         var receiverOptions = new ReceiverOptions
         {
-            AllowedUpdates = { }
+            AllowedUpdates = Array.Empty<UpdateType>()
         };
-        
-        _client.StartReceiving(
-            PollingUpdateHandler, 
-            PollingErrorHandler, 
-            receiverOptions);
+
+        var bot = await _client.GetMeAsync(cancellationToken);
+        await _client.SetMyCommandsAsync(
+            _botCommandAggregator.GetConvertedCommands(),
+            cancellationToken: cancellationToken);
+        StartReceiving(receiverOptions, cancellationToken);
+
+        Log.Logger.Information($"Бот {bot.Username} ({bot.Id}) успешно начал поллинг.");
+        await BotMessager.Send(
+            _client,
+            _generalSettings.MainChatId,
+            "Бот запущен!");
     }
 
-    private async Task<string> MessageUpdateHandler(
+    private void StartReceiving(ReceiverOptions receiverOptions, CancellationToken cancellationToken)
+    {
+        var queuedReceiver = new QueuedUpdateReceiver(
+            _client,
+            receiverOptions,
+            PollingErrorHandler);
+
+        Task.Run(
+                async () =>
+                {
+                    await foreach (var update in queuedReceiver.WithCancellation(cancellationToken))
+                    {
+                        try
+                        {
+                            Task.Run(
+                                async () =>
+                                {
+                                    try
+                                    {
+                                        await PollingUpdateHandler(
+                                            _client,
+                                            update,
+                                            cancellationToken);
+                                    }
+                                    catch (Exception exсeption)
+                                    {
+                                        Log.Logger.Error(
+                                            exсeption,
+                                            "Поймано исключение во время обработки запроса!");
+
+                                        if (update.Message is not null)
+                                        {
+                                            await BotMessager.Reply(
+                                                _client,
+                                                update.Message,
+                                                "Не удалось обработать ваше сообщение.");
+                                        }
+                                    }
+                                },
+                                cancellationToken);
+                        }
+                        catch (Exception exсeption)
+                        {
+                            Log.Logger.Error(exсeption, "Поймано исключение во время отпуска таски!");
+                        }
+                    }
+                },
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task UpdateUserData(
+        Chat telegramChat,
+        User telegramUser,
+        CancellationToken cts)
+    {
+        if (telegramUser.IsBot || telegramChat.Id != _generalSettings.MainChatId)
+        {
+            return;
+        }
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cts);
+        var user = await dbContext.Users.FindAsync(telegramUser.Id);
+        if (user is not null)
+        {
+            user.Handle = telegramUser.Username;
+            user.Name = telegramUser.FirstName;
+            user.MsgAmount++;
+            await dbContext.SaveChangesAsync(cts);
+            return;
+        }
+
+        user = new UserInfo
+        {
+            Id = telegramUser.Id,
+            Handle = telegramUser.Username,
+            Name = telegramUser.FirstName,
+            Level = telegramUser.Id == _generalSettings.OwnerId ? AccessLevel.Owner : AccessLevel.Normal,
+            MsgAmount = 1
+        };
+
+        await dbContext.Users.AddAsync(user, cts);
+        await dbContext.SaveChangesAsync(cts);
+        Log.Logger.Information($"Пользователь {user.Handle} ({user.Id}) добавлен в белый список.");
+    }
+
+    private async Task HandleMessageUpdate(
         ITelegramBotClient client,
         Message message,
         CancellationToken cts)
     {
         if (message.From is null)
         {
-            return "Не удалось идентифицировать отправителя.";
+            return;
         }
 
-        var userFinder = _masterRepository.Find("user") as IUserInfoRepository;
-        var user = await userFinder?.FindAsync(message.From.Id)!;
-        if (user is null && message.From.Id != _generalSettings.OwnerId)
+        await UpdateUserData(
+            message.Chat,
+            message.From,
+            cts);
+
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cts);
+        var userInfo = await dbContext.Users.FindAsync(message.From!.Id);
+        if (userInfo is null)
         {
-            return $"Пользователя {message.From.FirstName} ({message.From.Id}) нет в белом списке.";
+            Log.Logger.Information(
+                $"Пользователя {message.From.Username} ({message.From.Id}) " +
+                "нет в белом списке.");
+            return;
         }
 
-        if (message.Chat.Id != user.Id && message.Chat.Id != _generalSettings.MainChatId)
+        if (message.Chat.Id != message.From.Id && message.Chat.Id != _generalSettings.MainChatId)
         {
-            return
-                $"Сообщение пользователя {user.Name} ({user.Id}) получено не из основного чата/личных сообщений.";
+            Log.Logger.Information(
+                $"Сообщение пользователя {userInfo.Handle} ({userInfo.Id}) " +
+                "получено не из основного чата/личных сообщений.");
+            return;
         }
 
-        if (message.Text is null)
-        {
-            return $"Сообщение от пользователя {user.Name} ({user.Id}) невозможно обработать.";
-        }
-
-        var args = TextParser.ParseMessageToCommand(message.Text);
-        if (args.Count == 0)
-        {
-            return $"Сообщение от пользователя {user.Name} ({user.Id}) не содержит команду.";
-        }
-
-        return await _botCommandAggregator.ExecuteCommandByNameAsync(
-            args[0],
+        var response = await _messageUpdateHandler.HandleAsync(
             client,
             message,
-            user,
-            args.Skip(1).ToList());
+            userInfo);
+        Log.Logger.Information(response.ToString());
     }
-    
-    public async Task PollingUpdateHandler(
-        ITelegramBotClient client, 
-        Update update, 
+
+    private async Task HandleCallbackQueryUpdate(
+        ITelegramBotClient client,
+        CallbackQuery callbackQuery,
+        CancellationToken cts)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cts);
+        var userInfo = await dbContext.Users.FindAsync(callbackQuery.From.Id);
+        if (userInfo is null)
+        {
+            Log.Logger.Information(
+                $"Пользователя {callbackQuery.From.Username} ({callbackQuery.From.Id}) " +
+                "нет в белом списке.");
+            return;
+        }
+
+        var response = await _callbackQueryUpdateHandler.HandleAsync(
+            client,
+            callbackQuery,
+            userInfo);
+        Log.Logger.Information(response.ToString());
+    }
+
+    private async Task PollingUpdateHandler(
+        ITelegramBotClient client,
+        Update update,
         CancellationToken cts)
     {
         if (update.Type == UpdateType.Message)
         {
-            if (update.Message is null)
-            {
-                // произошла внутренняя ошибка
-                return;
-            }
-
-            if (update.Message.Chat.Id == _generalSettings.MainChatId 
-                && update.Message.From is not null
-                && !update.Message.From.IsBot)
-            {
-                var userRepository = _masterRepository.Find("user") as IUserInfoRepository;
-                var user = await userRepository?.FindAsync(update.Message.From.Id)!;
-                if (user is null)
-                {
-                    await userRepository.AddAsync(
-                        new UserInfo
-                        {
-                            Id = update.Message.From.Id,
-                            Handle = update.Message.From.Username,
-                            Name = update.Message.From.FirstName,
-                            Level = AccessLevel.Normal,
-                            MsgAmount = 1
-                        });
-                    
-                    await userRepository.SaveAsync();
-                }
-            }
-
-            var response = await MessageUpdateHandler(
+            await HandleMessageUpdate(
                 client,
-                update.Message, 
+                update.Message!,
                 cts);
-            
-            // to-do proper logging
-            Console.WriteLine(response);
         }
-        
-        
-        // асинхронно работаем с обновлениями и выбираем более конкретный обработчик для каждого типа
+        else if (update.Type == UpdateType.CallbackQuery)
+        {
+            await HandleCallbackQueryUpdate(
+                client,
+                update.CallbackQuery!,
+                cts);
+        }
     }
-    
-    private async Task PollingErrorHandler(
-        ITelegramBotClient client, 
-        Exception exception, 
-        CancellationToken cts)
+
+    private Task PollingErrorHandler(Exception exception, CancellationToken cts)
     {
-        Console.WriteLine(exception);
+        return Task.CompletedTask;
     }
 }

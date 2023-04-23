@@ -1,5 +1,7 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using StudyOrganizer.Database;
+using StudyOrganizer.Extensions;
 using StudyOrganizer.Models.Link;
 
 namespace StudyOrganizer.Repositories.Link;
@@ -32,6 +34,12 @@ public class LinkInfoRepository : ILinkInfoRepository
         await _dbContext.SaveChangesAsync();
     }
 
+    public Task ClearAllAsync()
+    {
+        _dbContext.Links.Clear();
+        return Task.CompletedTask;
+    }
+
     public async Task<IReadOnlyList<LinkInfo>> GetDataAsync()
     {
         return await _dbContext.Links.ToListAsync();
@@ -39,6 +47,16 @@ public class LinkInfoRepository : ILinkInfoRepository
 
     public async Task<LinkInfo?> FindAsync(string name)
     {
-        return await _dbContext.Links.FirstOrDefaultAsync(link => link.Name == name);
+        return await _dbContext.Links.FindAsync(name);
+    }
+
+    public async Task<LinkInfo?> FindByPredicateAsync(Expression<Func<LinkInfo, bool>> predicate)
+    {
+        return await _dbContext.Links.FirstOrDefaultAsync(predicate);
+    }
+
+    public async Task<IEnumerable<LinkInfo>> FilterByPredicateAsync(Expression<Func<LinkInfo, bool>> predicate)
+    {
+        return await _dbContext.Links.Where(predicate).ToListAsync();
     }
 }

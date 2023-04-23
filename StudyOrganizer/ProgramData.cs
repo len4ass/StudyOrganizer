@@ -1,6 +1,5 @@
 using StudyOrganizer.Helper;
 using StudyOrganizer.Helper.Serializers;
-using StudyOrganizer.Settings;
 
 namespace StudyOrganizer;
 
@@ -8,53 +7,31 @@ public static class ProgramData
 {
     public static T LoadFrom<T>(string path)
     {
-        var loader = new DataHelper<T>(new JsonHelper<T>(path));
-        
-        var data = loader.LoadData();
-        if (data is null)
-        {
-            throw new ArgumentNullException($"Не удалось десериализовать данные типа {typeof(T)}.");
-        }
+        var helper = new DataHelper<T>(new JsonHelper<T>(path));
 
+        var data = helper.LoadData();
+        ArgumentNullException.ThrowIfNull(data);
         return data;
     }
 
-    public static void AssertSafeFileAccess()
+    public static void SaveTo<T>(string path, T data)
     {
-        if (!File.Exists(PathContainer.SettingsPath))
-        {
-            var handle = File.Create(PathContainer.SettingsPath);
-            handle.Close();
-        }
+        var helper = new DataHelper<T>(new JsonHelper<T>(path));
+        helper.SaveData(data);
     }
-    
-    public static void ValidateSettings(GeneralSettings generalSettings)
+
+    public static async Task<T> LoadFromAsync<T>(string path)
     {
-        ArgumentNullException.ThrowIfNull(generalSettings.Token);
-        
+        var helper = new DataHelper<T>(new JsonHelper<T>(path));
 
-        if (generalSettings.OwnerId == 0)
-        {
-            throw new InvalidDataException(
-                "Укажите ID владельца бота (OwnerId) в settings.json в папке с программой.");
-        }
+        var data = await helper.LoadDataAsync();
+        ArgumentNullException.ThrowIfNull(data);
+        return data;
+    }
 
-        if (generalSettings.MainChatId == 0)
-        {
-            throw new InvalidDataException(
-                "Укажите ID основного чата (MainChatId) в settings.json в папке с программой.");
-        }
-
-        if (generalSettings.ImportantChatId == 0)
-        {
-            throw new InvalidDataException(
-                $"Укажите ID важного чата (ImportantChatId) в settings.json в папке с программой.");
-        }
-
-        /*if (generalSettings.ChatTimeZoneUtc is null)
-        {
-            throw new InvalidDataException(
-                "Укажите тайм-зону основного чата (ChatTimeZoneUtc) в settings.json в папке с программой.");
-        }*/
+    public static async Task SaveToAsync<T>(string path, T data)
+    {
+        var helper = new DataHelper<T>(new JsonHelper<T>(path));
+        await helper.SaveDataAsync(data);
     }
 }

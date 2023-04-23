@@ -6,14 +6,23 @@ public class LinkInfo
 {
     [Key]
     public string Name { get; init; }
-    public string Description { get; init; }
-    public string Uri { get; init; }
+    public string Description { get; set; }
+    public string Uri { get; set; }
+
+    public LinkInfo()
+    {
+    }
 
     public LinkInfo(string name, string description, string uri)
     {
         Name = name;
         Description = description;
         Uri = uri;
+    }
+
+    public override string ToString()
+    {
+        return $"<a href=\"{Uri}\"><b>{Name}</b></a> — {Description}";
     }
 
     public override bool Equals(object? obj)
@@ -33,12 +42,6 @@ public class LinkInfo
 
     public override int GetHashCode()
     {
-        unchecked
-        {
-            var hashCode = Name.GetHashCode();
-            hashCode = (hashCode * 397) ^ Description.GetHashCode();
-            hashCode = (hashCode * 397) ^ Uri.GetHashCode();
-            return hashCode;
-        }
+        return Name.GetHashCode();
     }
 }

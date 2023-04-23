@@ -11,17 +11,35 @@ public class JsonHelper<T> : ISerializer<T>
         _path = path;
     }
 
-    public void Serialize(T element)
+    public async Task SerializeAsync(T element)
     {
-        using var writer = new StreamWriter(_path, false);
-        JsonSerializer.Serialize(
-            writer.BaseStream, 
-            element, 
+        await using var writer = new StreamWriter(_path, false);
+        await JsonSerializer.SerializeAsync(
+            writer.BaseStream,
+            element,
             new JsonSerializerOptions
             {
                 WriteIndented = true
             });
-        
+    }
+
+    public async Task<T?> DeserializeAsync()
+    {
+        using var reader = new StreamReader(_path);
+        return await JsonSerializer.DeserializeAsync<T>(reader.BaseStream);
+    }
+
+    public void Serialize(T element)
+    {
+        using var writer = new StreamWriter(_path, false);
+        JsonSerializer.Serialize(
+            writer.BaseStream,
+            element,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
         writer.Close();
     }
 
