@@ -31,4 +31,4 @@ jobs:
         run: docker build -t study_organizer -f Dockerfile .
         
       - name: Run application
-        run: docker run -v /var/deploy/StudyOrganizer:/app/out --restart unless-stopped --name SORG -it -e 'BOT_TOKEN=${{ secrets.BOT_TOKEN }}' -e 'YANDEX_CLOUD_TOKEN=${{ secrets.YANDEX_CLOUD_TOKEN }}' -e 'OPEN_API_TOKEN=${{ secrets.OPEN_API_TOKEN }}' -d study_organizer settings.json commands_settings/ trigger_settings/ db/bot_data.db
+        run: docker run -v /var/deploy/StudyOrganizer:/app/out --restart unless-stopped --name SORG -itd --network=host -e BOT_TOKEN=${{ secrets.BOT_TOKEN }} -e YANDEX_CLOUD_TOKEN=${{ secrets.YANDEX_CLOUD_TOKEN }} -e OPEN_API_TOKEN=${{ secrets.OPEN_API_TOKEN }} study_organizer out/settings.json out/commands_settings/ out/trigger_settings/ out/db/bot_data.db
