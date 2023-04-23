@@ -2,6 +2,9 @@
 WORKDIR /app
 
 COPY . ./
+RUN dotnet restore
+
+COPY . ./
 RUN dotnet publish -c Release -o out
 
 # Build runtime image
