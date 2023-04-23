@@ -34,7 +34,6 @@ using StudyOrganizer.Validators.Link;
 using StudyOrganizer.Validators.Trigger;
 using StudyOrganizer.Validators.User;
 using Telegram.Bot;
-using YandexSpeechKitApi;
 using YandexSpeechKitApi.Clients;
 using IContainer = Autofac.IContainer;
 
@@ -127,21 +126,19 @@ public class Startup
 
     private void ConfigureBot()
     {
-        var token = ProgramData.LoadFrom<Token>(_workingPaths.BotTokenFile);
-        ArgumentNullException.ThrowIfNull(token.Hash);
-        _containerBuilder.RegisterInstance(new TelegramBotClient(token.Hash))
+        var token = Environment.GetEnvironmentVariable("BOT_TOKEN");
+        ArgumentNullException.ThrowIfNull(token);
+        _containerBuilder.RegisterInstance(new TelegramBotClient(token))
             .As<ITelegramBotClient>()
             .SingleInstance();
     }
 
     private void ConfigureNeuralNetworkApis()
     {
-        var openAiToken = ProgramData.LoadFrom<Token>(_workingPaths.OpenApiTokenFile);
-        ArgumentNullException.ThrowIfNull(openAiToken.Hash);
-
-        if (openAiToken.Hash != string.Empty)
+        var openAiToken = Environment.GetEnvironmentVariable("OPEN_API_TOKEN");
+        if (openAiToken is not null)
         {
-            var api = new OpenAIClient(openAiToken.Hash);
+            var api = new OpenAIClient(openAiToken);
             _containerBuilder.RegisterInstance(api)
                 .SingleInstance();
 
@@ -149,11 +146,10 @@ public class Startup
                 .As<IOpenAiTextAnalyzer>()
                 .SingleInstance();
 
-            var yandexToken = ProgramData.LoadFrom<Token>(_workingPaths.YandexCloudApiTokenFile);
-            ArgumentNullException.ThrowIfNull(yandexToken.Hash);
-            if (yandexToken.Hash != string.Empty)
+            var yandexToken = Environment.GetEnvironmentVariable("YANDEX_CLOUD_TOKEN");
+            if (yandexToken is not null)
             {
-                _containerBuilder.RegisterInstance(new SpeechKitClient(yandexToken.Hash))
+                _containerBuilder.RegisterInstance(new SpeechKitClient(yandexToken))
                     .As<ISpeechKitClient>()
                     .SingleInstance();
             }
@@ -214,7 +210,7 @@ public class Startup
     private void RegisterQuartzJobs()
     {
         _containerBuilder.RegisterModule(new QuartzAutofacFactoryModule());
-        var accordingFiles = Directory.GetFiles(_workingPaths.TriggersDirectory, "*.dll");
+        var accordingFiles = Directory.GetFiles(AppContext.BaseDirectory, "*.dll");
         foreach (var assemblyPath in accordingFiles)
         {
             var assembly = Assembly.LoadFrom(assemblyPath);
@@ -419,7 +415,7 @@ public class Startup
         ConfigureSpeechToTextApi();
         ConfigureSettings();
         ConfigureDatabasePooling();
-        RegisterDynamicTypes<BotCommand>(_workingPaths.CommandsDirectory);
+        RegisterDynamicTypes<BotCommand>(AppContext.BaseDirectory);
         RegisterQuartzJobs();
         ConfigureBackgroundServices();
         BuildContainer();

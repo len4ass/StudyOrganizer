@@ -14,14 +14,15 @@ public sealed class MyDbContext : DbContext
     public DbSet<DeadlineInfo> Deadlines => Set<DeadlineInfo>();
     public DbSet<LinkInfo> Links => Set<LinkInfo>();
     public DbSet<TriggerInfo> Triggers => Set<TriggerInfo>();
-    
+
     private MyDbContext()
     {
-        Database.EnsureCreated();
+        Database.Migrate();
     }
 
-    public MyDbContext(DbContextOptions dbContextOptions) : base(dbContextOptions)
+    public MyDbContext(DbContextOptions dbContextOptions)
+        : base(dbContextOptions)
     {
-        Database.EnsureCreated();
+        Database.Migrate();
     }
 }

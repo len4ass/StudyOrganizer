@@ -119,10 +119,17 @@ public class UpdateCommandSettingsCommand : BotCommand
         }
 
         var previousSettings = command.Settings.Adapt<CommandSettings>();
-        ParseAndMapPropertiesOnObject(
-            command.Settings,
-            arguments.Skip(1)
-                .ToList());
+        try
+        {
+            ParseAndMapPropertiesOnObject(
+                command.Settings,
+                arguments.Skip(1)
+                    .ToList());
+        }
+        catch (Exception e) when (e is IndexOutOfRangeException || e is FormatException)
+        {
+            return UserResponseFactory.FailedParsing(Name);
+        }
 
         var (isValid, response) = ValidateCommandSettings(command.Settings);
         if (!isValid)

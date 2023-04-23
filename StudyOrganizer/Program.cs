@@ -22,7 +22,7 @@ internal static class Program
     {
         // todo birthdaytrigger
 
-        if (args.Length != 9)
+        if (args.Length != 4)
         {
             Console.WriteLine("Некорректное количество параметров командной строки.");
             return;
@@ -34,12 +34,7 @@ internal static class Program
             Path.Combine(AppContext.BaseDirectory, args[0]),
             Path.Combine(AppContext.BaseDirectory, args[1]),
             Path.Combine(AppContext.BaseDirectory, args[2]),
-            Path.Combine(AppContext.BaseDirectory, args[3]),
-            Path.Combine(AppContext.BaseDirectory, args[4]),
-            Path.Combine(AppContext.BaseDirectory, args[5]),
-            Path.Combine(AppContext.BaseDirectory, args[6]),
-            Path.Combine(AppContext.BaseDirectory, args[7]),
-            Path.Combine(AppContext.BaseDirectory, args[8]));
+            Path.Combine(AppContext.BaseDirectory, args[3]));
 
         var services = new Startup(workingPaths, new ContainerBuilder()).ConfigureServices();
         var cts = new CancellationTokenSource();
@@ -48,7 +43,15 @@ internal static class Program
             await service.StartAsync(cts.Token);
         }
 
-        Console.ReadLine();
+        ManualResetEventSlim mre = new();
+        Console.CancelKeyPress += (_, e) =>
+        {
+            mre.Set();
+            e.Cancel = true;
+        };
+        mre.Wait();
+        
+        Log.Logger.Information("Caught CTRL+C, calling cancellation token.");
         cts.Cancel();
     }
 }

@@ -133,10 +133,17 @@ public sealed class UpdateTriggerCommand : BotCommand
         }
 
         var previousSettings = trigger.Settings.Adapt<TriggerSettings>();
-        ParseAndMapPropertiesOnObject(
-            trigger.Settings,
-            arguments.Skip(1)
-                .ToList());
+        try
+        {
+            ParseAndMapPropertiesOnObject(
+                trigger.Settings,
+                arguments.Skip(1)
+                    .ToList());
+        }
+        catch (Exception e) when (e is IndexOutOfRangeException || e is FormatException)
+        {
+            return UserResponseFactory.FailedParsing(Name);
+        }
 
         var (isValid, response) = ValidateTrigger(trigger.Settings);
         if (!isValid)

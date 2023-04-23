@@ -13,6 +13,7 @@ using StudyOrganizer.Settings;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using BotCommand = StudyOrganizer.Services.BotService.Command.BotCommand;
+using Exception = System.Exception;
 
 namespace UpdateUserCommand;
 
@@ -168,7 +169,16 @@ public sealed class UpdateUserCommand : BotCommand
         }
 
         var previousUserDto = userToUpdate.Adapt<UserDto>();
-        var newUserDto = CreateUserDtoFromKeyValuePairs(previousUserDto, arguments);
+        UserDto newUserDto;
+        try
+        {
+            newUserDto = CreateUserDtoFromKeyValuePairs(previousUserDto, arguments);
+        }
+        catch (Exception e) when (e is IndexOutOfRangeException || e is FormatException)
+        {
+            return UserResponseFactory.FailedParsing(Name);
+        }
+
         var (isValid, response) = ValidateUserDto(newUserDto);
         if (!isValid)
         {
