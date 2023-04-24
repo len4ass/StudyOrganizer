@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using StudyOrganizer.Loaders;
 
 namespace StudyOrganizer.Settings.SimpleTrigger;
 

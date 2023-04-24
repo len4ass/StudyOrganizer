@@ -5,12 +5,12 @@ namespace StudyOrganizer.Services.BotService.Responses;
 
 public class BotResponse
 {
-    public string? CommandName { get; set; } = default!;
-    public IList<string>? CommandArguments { get; set; } = default!;
-    public string User { get; set; } = default!;
-    public MessageType MessageType { get; set; }
-    public UserResponse UserResponse { get; set; } = default!;
-    public string InternalResponse { get; set; }
+    public string? CommandName { get; init; }
+    public IList<string>? CommandArguments { get; init; }
+    public string User { get; init; } = default!;
+    public MessageType MessageType { get; init; }
+    public UserResponse UserResponse { get; init; } = default!;
+    public string InternalResponse { get; init; } = default!;
 
     private string ToStringTextType()
     {
@@ -46,18 +46,20 @@ public class BotResponse
         return $"Пользователь '{User}' отправил callback query.";
     }
 
+    private string ToStringOtherType()
+    {
+        return $"Сообщение пользователя {User} содержит неподдерживаемый тип сообщений.";
+    }
+
     public override string ToString()
     {
-        if (MessageType == MessageType.Text)
+        return MessageType switch
         {
-            return ToStringTextType();
-        }
-
-        if (MessageType == MessageType.Voice)
-        {
-            return ToStringVoiceType();
-        }
-
-        return ToStringQueryType();
+            MessageType.Text => ToStringTextType(),
+            MessageType.Voice => ToStringVoiceType(),
+            MessageType.Query => ToStringQueryType(),
+            MessageType.Other => ToStringOtherType(),
+            _ => "Неизвестный MessageType при получении внутреннего состояния BotResponse"
+        };
     }
 }

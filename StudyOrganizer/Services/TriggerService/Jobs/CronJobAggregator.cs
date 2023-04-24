@@ -1,5 +1,4 @@
 using System.Collections;
-using Quartz;
 
 namespace StudyOrganizer.Services.TriggerService.Jobs;
 
@@ -11,7 +10,7 @@ public class CronJobAggregator : IEnumerable<KeyValuePair<string, CronJob>>
     {
         _jobs = new Dictionary<string, CronJob>();
     }
-    
+
     public CronJobAggregator(IDictionary<string, CronJob> jobs)
     {
         _jobs = jobs;

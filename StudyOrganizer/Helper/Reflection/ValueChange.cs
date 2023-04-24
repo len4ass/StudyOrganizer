@@ -1,4 +1,4 @@
-namespace StudyOrganizer.Loaders;
+namespace StudyOrganizer.Helper.Reflection;
 
 public class ValueChange
 {

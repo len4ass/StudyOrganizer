@@ -1,8 +1,5 @@
 using System.Net;
-using StudyOrganizer.Models.User;
-using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
-using YandexSpeechKitApi;
 using YandexSpeechKitApi.Clients;
 using YandexSpeechKitApi.Contracts;
 

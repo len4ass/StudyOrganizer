@@ -1,6 +1,4 @@
 using FluentValidation;
-using StudyOrganizer.Services.TriggerService;
-using StudyOrganizer.Settings;
 using StudyOrganizer.Settings.SimpleTrigger;
 
 namespace StudyOrganizer.Validators.Trigger;

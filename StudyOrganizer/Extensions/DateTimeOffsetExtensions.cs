@@ -2,11 +2,6 @@ namespace StudyOrganizer.Extensions;
 
 public static class DateTimeOffsetExtensions
 {
-    public static bool IsAfter(this DateTimeOffset dateTime, DateTimeOffset other)
-    {
-        return dateTime > other;
-    }
-    
     public static int GetDaysDifferenceUtc(this DateTimeOffset date)
     {
         return (int)(date - DateTimeOffset.UtcNow).TotalDays;

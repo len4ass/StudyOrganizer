@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using Mapster;
-using StudyOrganizer.Extensions;
 
 namespace StudyOrganizer.Models.User;
 

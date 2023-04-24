@@ -4,6 +4,5 @@ public enum SimpleTriggerRecurringType
 {
     EveryMinute,
     Hourly,
-    Daily,
-    Weekly
+    Daily
 }
