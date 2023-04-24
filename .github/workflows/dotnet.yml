@@ -1,12 +1,7 @@
 name: Production pipeline
 
 # Controls when the workflow will run
-on:
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'The branch to build'
-        required: true
+on: [workflow_dispatch]
         
 jobs:
   deploy:
