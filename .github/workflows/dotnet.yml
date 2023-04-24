@@ -2,10 +2,12 @@ name: Production pipeline
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push request event for the master branch
-  push:    
-    branches: [master]
-
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'The branch to build'
+        required: true
+        
 jobs:
   deploy:
     # My self-hosted action runner
