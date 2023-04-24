@@ -32,7 +32,10 @@ public class MessageUpdateHandler : IUpdateHandler<Telegram.Bot.Types.Message>
                 client,
                 update,
                 user),
-            _ => throw new NotImplementedException()
+            _ => new BotResponse
+            {
+                MessageType = MessageType.Other
+            }
         };
     }
 }

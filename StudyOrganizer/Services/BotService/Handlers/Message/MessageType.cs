@@ -4,5 +4,6 @@ public enum MessageType
 {
     Text,
     Voice,
-    Query
+    Query,
+    Other
 }
