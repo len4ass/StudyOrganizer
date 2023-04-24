@@ -18,9 +18,23 @@ internal static class Program
             (_, args) => { Log.Logger.Error(args.ExceptionObject as Exception, "Необработанное исключение!"); });
     }
 
+    private static void WaitTermination(CancellationTokenSource cts) 
+    {
+        ManualResetEventSlim mre = new();
+        Console.CancelKeyPress += (_, e) =>
+        {
+            mre.Set();
+            e.Cancel = true;
+        };
+        mre.Wait();
+
+        Log.Logger.Information("Caught CTRL+C, calling cancellation token.");
+        cts.Cancel();
+    }
+    
     public static async Task Main(string[] args)
     {
-        // todo birthdaytrigger
+        // todo startcommand, pingcommand, getbirthdays
 
         if (args.Length != 4)
         {
@@ -42,16 +56,7 @@ internal static class Program
         {
             await service.StartAsync(cts.Token);
         }
-
-        ManualResetEventSlim mre = new();
-        Console.CancelKeyPress += (_, e) =>
-        {
-            mre.Set();
-            e.Cancel = true;
-        };
-        mre.Wait();
         
-        Log.Logger.Information("Caught CTRL+C, calling cancellation token.");
-        cts.Cancel();
+        WaitTermination(cts);
     }
 }

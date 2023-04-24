@@ -9,48 +9,35 @@ public static class TextParser
         message = message.Trim();
         if (!message.StartsWith('/'))
         {
-            return Enumerable.Empty<string>().ToList();
+            return Enumerable.Empty<string>()
+                .ToList();
         }
 
         message = message.TrimStart('/');
         var entries = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        
-        var atIndex = entries[0].IndexOf('@');
+
+        var atIndex = entries[0]
+            .IndexOf('@');
         if (atIndex >= 0)
         {
             entries[0] = entries[0][..atIndex];
         }
-        
+
         return entries;
-    }
-
-    public static DateTimeOffset? ParseDateTime(string dateTimeString, string timeZoneId)
-    {
-        TimeZoneInfo timeZoneInfo;
-        try
-        {
-            timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-        catch (TimeZoneNotFoundException)
-        {
-            return null;
-        }
-        catch (InvalidTimeZoneException)
-        {
-            return null;
-        }
-
-        return ParseDateTime(dateTimeString, timeZoneInfo);
     }
 
     public static DateTimeOffset? ParseDateTime(string dateTimeString, TimeZoneInfo timeZoneInfo)
     {
-        var parsed = DateTime.TryParse(dateTimeString, new CultureInfo("ru-RU"), DateTimeStyles.None, out var dateTime);
+        var parsed = DateTime.TryParse(
+            dateTimeString,
+            new CultureInfo("ru-RU"),
+            DateTimeStyles.None,
+            out var dateTime);
         if (!parsed)
         {
             return null;
         }
-        
+
         var utcDateTime = TimeZoneInfo.ConvertTimeToUtc(dateTime, timeZoneInfo);
         return new DateTimeOffset(utcDateTime, TimeSpan.Zero);
     }

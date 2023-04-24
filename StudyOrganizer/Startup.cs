@@ -10,7 +10,7 @@ using Quartz;
 using Serilog;
 using StudyOrganizer.Database;
 using StudyOrganizer.Extensions;
-using StudyOrganizer.Loaders;
+using StudyOrganizer.Helper.Reflection;
 using StudyOrganizer.Models.Command;
 using StudyOrganizer.Models.Deadline;
 using StudyOrganizer.Models.Link;

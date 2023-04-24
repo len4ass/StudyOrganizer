@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyOrganizer.Database;
 using StudyOrganizer.Models.User;
-using StudyOrganizer.Repositories.User;
 using StudyOrganizer.Services.BotService;
 using StudyOrganizer.Services.BotService.Responses;
 using StudyOrganizer.Settings;
@@ -90,9 +90,7 @@ public sealed class RemoveUserCommand : BotCommand
     private async Task<UserResponse> RemoveUserFromDatabaseByHandle(string handle)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var userRepository = new UserInfoRepository(dbContext);
-
-        var user = await userRepository.FindAsync(handle);
+        var user = await dbContext.Users.FirstOrDefaultAsync(user => user.Handle == handle);
         if (user is null)
         {
             return UserResponseFactory.UserDoesNotExist(Name, handle);
@@ -100,8 +98,8 @@ public sealed class RemoveUserCommand : BotCommand
 
         var userId = user.Id;
         var userHandle = user.Handle ?? user.Name;
-        await userRepository.RemoveAsync(user);
-        await userRepository.SaveAsync();
+        dbContext.Users.Remove(user);
+        await dbContext.SaveChangesAsync();
 
         var userResponse =
             $"Пользователь <b>{userHandle}</b> ({userId}) успешно удален из базы данных.";

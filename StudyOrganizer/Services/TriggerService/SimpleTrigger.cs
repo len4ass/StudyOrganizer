@@ -1,5 +1,4 @@
 using Quartz;
-using StudyOrganizer.Settings;
 using StudyOrganizer.Settings.SimpleTrigger;
 
 namespace StudyOrganizer.Services.TriggerService;

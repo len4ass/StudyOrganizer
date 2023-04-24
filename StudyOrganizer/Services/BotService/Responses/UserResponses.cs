@@ -1,4 +1,4 @@
-namespace StudyOrganizer.Services.BotService;
+namespace StudyOrganizer.Services.BotService.Responses;
 
 public static class UserResponses
 {

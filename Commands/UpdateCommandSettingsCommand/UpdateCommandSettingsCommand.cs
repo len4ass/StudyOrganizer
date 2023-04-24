@@ -5,7 +5,7 @@ using StudyOrganizer;
 using StudyOrganizer.Database;
 using StudyOrganizer.Extensions;
 using StudyOrganizer.Formatters;
-using StudyOrganizer.Loaders;
+using StudyOrganizer.Helper.Reflection;
 using StudyOrganizer.Models.Command;
 using StudyOrganizer.Models.User;
 using StudyOrganizer.Services.BotService;

@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using StudyOrganizer.Settings;
 using StudyOrganizer.Settings.SimpleTrigger;
 
 namespace StudyOrganizer.Models.Trigger;
