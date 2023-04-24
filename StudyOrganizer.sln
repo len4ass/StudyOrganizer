@@ -56,6 +56,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateCommandSettingsComman
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BirthdayAnnouncementTrigger", "Triggers\BirthdayAnnouncementTrigger\BirthdayAnnouncementTrigger.csproj", "{C85CBCD5-BBCE-4AE1-9FE6-79F57CF1A31D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PingCommand", "Commands\PingCommand\PingCommand.csproj", "{625C461D-F097-452C-AD08-E99BA7675F18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GetBirthdaysCommand", "Commands\GetBirthdaysCommand\GetBirthdaysCommand.csproj", "{6B06FD8F-1FEF-4564-8E4D-1FEBD54B88F4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -174,5 +178,13 @@ Global
 		{C85CBCD5-BBCE-4AE1-9FE6-79F57CF1A31D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C85CBCD5-BBCE-4AE1-9FE6-79F57CF1A31D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C85CBCD5-BBCE-4AE1-9FE6-79F57CF1A31D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{625C461D-F097-452C-AD08-E99BA7675F18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{625C461D-F097-452C-AD08-E99BA7675F18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{625C461D-F097-452C-AD08-E99BA7675F18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{625C461D-F097-452C-AD08-E99BA7675F18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B06FD8F-1FEF-4564-8E4D-1FEBD54B88F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B06FD8F-1FEF-4564-8E4D-1FEBD54B88F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B06FD8F-1FEF-4564-8E4D-1FEBD54B88F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B06FD8F-1FEF-4564-8E4D-1FEBD54B88F4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
