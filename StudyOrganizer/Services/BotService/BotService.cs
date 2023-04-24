@@ -54,7 +54,7 @@ public class BotService : IService
         Log.Logger.Information($"Бот {bot.Username} ({bot.Id}) успешно начал поллинг.");
         await BotMessager.Send(
             _client,
-            _generalSettings.MainChatId,
+            _generalSettings.OwnerId,
             "Бот запущен!");
     }
 
