@@ -31,10 +31,10 @@ public sealed class CleanInvalidDeadlinesTrigger : SimpleTrigger
     public override async Task Execute(IJobExecutionContext context)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var deadlines = await dbContext.Deadlines.ToListAsync();
-
-        var expiredDeadlines = deadlines.Where(deadline => deadline.DateUtc < DateTimeOffset.UtcNow);
-        dbContext.Deadlines.RemoveRange(expiredDeadlines);
+        var queryForDeadlineDeletion =
+            @"DELETE FROM Deadlines 
+              WHERE (strftime('%s', DateUtc) < strftime('%s', 'now'))";
+        dbContext.Deadlines.FromSqlRaw(queryForDeadlineDeletion);
         await dbContext.SaveChangesAsync();
     }
 }
