@@ -68,10 +68,11 @@ public sealed class GetBirthdaysCommand : BotCommand
     private async Task<UserResponse> GetAllBirthdays()
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var usersWithDefinedBirthday = await dbContext.Users.Where(user => user.Birthday.HasValue)
+        var usersWithDefinedBirthday = await dbContext.Users
+            .Where(user => user.Birthday.HasValue)
             .OrderBy(user => user.Birthday!.Value)
             .ToListAsync();
-        
+
         var userBirthdaysFormatted = FormatAllUserBirthdays(usersWithDefinedBirthday);
         return new UserResponse(userBirthdaysFormatted);
     }

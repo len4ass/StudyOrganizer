@@ -55,18 +55,21 @@ public sealed class GetDeadlinesCommand : BotCommand
         }
 
         var validDeadlines = await ExtractValidDeadlines();
-        var sortedDeadlines = validDeadlines.OrderBy(deadline => deadline.DateUtc)
-            .ToList();
-        var deadlinesString = BuildDeadlineString(sortedDeadlines);
+        var deadlinesString = BuildDeadlineString(validDeadlines);
         return UserResponseFactory.Success(deadlinesString);
     }
 
     private async Task<IList<DeadlineInfo>> ExtractValidDeadlines()
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var allDeadlines = await dbContext.Deadlines.ToListAsync();
-        return allDeadlines.Where(deadline => deadline.DateUtc > DateTimeOffset.UtcNow)
-            .ToList();
+        const string queryForValidDeadlinesOrderedByDate = @"SELECT * FROM Deadlines
+            WHERE (strftime('%s', DateUtc) >= strftime('%s', 'now'))
+            ORDER BY (strftime('%s', DateUtc))";
+
+        var validDeadlines = await dbContext.Deadlines
+            .FromSqlRaw(queryForValidDeadlinesOrderedByDate)
+            .ToListAsync();
+        return validDeadlines;
     }
 
     private string GetDeadlineString(DeadlineInfo deadline, int index)

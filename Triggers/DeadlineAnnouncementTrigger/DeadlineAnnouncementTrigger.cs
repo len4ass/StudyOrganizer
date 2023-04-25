@@ -9,6 +9,7 @@ using StudyOrganizer.Services.TriggerService;
 using StudyOrganizer.Settings;
 using StudyOrganizer.Settings.SimpleTrigger;
 using Telegram.Bot;
+using DbFunctions = System.Data.Entity.DbFunctions;
 
 namespace DeadlineAnnouncementTrigger;
 
@@ -62,19 +63,19 @@ public sealed class DeadlineAnnouncementTrigger : SimpleTrigger
     {
         if (deadlinesToday.Count == 0 && deadlinesDuringTheWeek.Count == 0)
         {
-            return "Ни сегодня, ни в течении недели нет никаких дедлайнов :)";
+            return "Ни сегодня, ни в течение недели нет никаких дедлайнов :)";
         }
 
         if (deadlinesToday.Count == 0 && deadlinesDuringTheWeek.Count != 0)
         {
             var deadlines = BuildListOfDeadlinesString(deadlinesDuringTheWeek);
-            return $"Дедлайнов сегодня нет, а вот в течении недели есть: \n\n{deadlines}";
+            return $"Дедлайнов сегодня нет, а вот в течение недели есть: \n\n{deadlines}";
         }
 
-        if (deadlinesToday.Count != 0 && deadlinesDuringTheWeek.Count != 0)
+        if (deadlinesToday.Count != 0 && deadlinesDuringTheWeek.Count == 0)
         {
             var deadlines = BuildListOfDeadlinesString(deadlinesToday);
-            return $"В течении недели дедлайнов нет. А вот сегодня есть: \n\n{deadlines}";
+            return $"В течение недели дедлайнов нет. А вот сегодня есть: \n\n{deadlines}";
         }
 
         var today = BuildListOfDeadlinesString(deadlinesToday);
@@ -87,16 +88,24 @@ public sealed class DeadlineAnnouncementTrigger : SimpleTrigger
     public override async Task Execute(IJobExecutionContext context)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-        var deadlines = await dbContext.Deadlines.ToListAsync();
 
-        var deadlinesForToday = deadlines
-            .Where(deadline => deadline.IsInGivenDayRange(1))
-            .ToList();
-        var deadlinesForTheRestOfTheWeek = deadlines
-            .Where(deadline => deadline.IsInGivenDayRange(1, 7))
-            .ToList();
+        const string queryForDeadlinesToday = @"SELECT * FROM Deadlines
+            WHERE (strftime('%s', DateUtc) >= strftime('%s', 'now')
+            AND strftime('%s', DateUtc) <= strftime('%s', 'now', '+1 day'))
+            ORDER BY (strftime('%s', DateUtc))";
+        var deadlinesToday = await dbContext.Deadlines
+            .FromSqlRaw(queryForDeadlinesToday)
+            .ToListAsync();
 
-        var deadlineString = BuildDeadlineAnnouncementString(deadlinesForToday, deadlinesForTheRestOfTheWeek);
+        const string queryForDeadlinesInSevenDays = @"SELECT * FROM Deadlines
+            WHERE (strftime('%s', DateUtc) >= strftime('%s', 'now', '+1 day')
+            AND strftime('%s', DateUtc) <= strftime('%s', 'now', '+7 day'))
+            ORDER BY (strftime('%s', DateUtc))";
+        var deadlinesInSevenDays = await dbContext.Deadlines
+            .FromSqlRaw(queryForDeadlinesInSevenDays)
+            .ToListAsync();
+
+        var deadlineString = BuildDeadlineAnnouncementString(deadlinesToday, deadlinesInSevenDays);
         await BotMessager.Send(
             _client,
             _settings.ImportantChatId,

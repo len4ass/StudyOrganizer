@@ -54,9 +54,12 @@ public class BirthdayAnnouncementTrigger : SimpleTrigger
             .ToListAsync();
         var usersWithBirthdayToday = usersWithBirthday
             .Where(
-                user => DateTimeOffset.UtcNow.DayOfYear ==
-                        user.GetBirthdayUtc(_settings.ChatTimeZoneUtc)
-                            .DayOfYear)
+                user =>
+                {
+                    var now = DateTimeOffset.UtcNow;
+                    var birthday = user.GetBirthdayUtc(_settings.ChatTimeZoneUtc);
+                    return now.Month == birthday.Month && now.Day == birthday.Day;
+                })
             .ToList();
 
         foreach (var user in usersWithBirthdayToday)

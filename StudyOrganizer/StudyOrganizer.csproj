@@ -12,6 +12,7 @@
       <PackageReference Include="Autofac" Version="7.0.0" />
       <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="8.0.0" />
       <PackageReference Include="Autofac.Extras.Quartz" Version="9.0.0" />
+      <PackageReference Include="EntityFramework" Version="6.4.4" />
       <PackageReference Include="FluentValidation" Version="11.5.2" />
       <PackageReference Include="Mapster" Version="7.4.0-pre06" />
       <PackageReference Include="Mapster.Core" Version="1.2.1-pre04" />
