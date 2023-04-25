@@ -98,7 +98,7 @@ public sealed class DeadlineAnnouncementTrigger : SimpleTrigger
             .ToListAsync();
 
         const string queryForDeadlinesInSevenDays = @"SELECT * FROM Deadlines
-            WHERE (strftime('%s', DateUtc) >= strftime('%s', 'now', '+1 day')
+            WHERE (strftime('%s', DateUtc) > strftime('%s', 'now', '+1 day')
             AND strftime('%s', DateUtc) <= strftime('%s', 'now', '+7 day'))
             ORDER BY (strftime('%s', DateUtc))";
         var deadlinesInSevenDays = await dbContext.Deadlines
