@@ -97,6 +97,7 @@ public sealed class AddUserCommand : BotCommand
             };
 
             await dbContext.Users.AddAsync(newUser);
+            await dbContext.SaveChangesAsync();
             var userResponse =
                 $"Пользователь {newUser.Handle ?? newUser.Name} ({newUser.Id}) успешно добавлен в базу данных.";
             return UserResponseFactory.Success(userResponse);

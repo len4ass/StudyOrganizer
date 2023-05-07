@@ -93,6 +93,7 @@ public sealed class AddLinkCommand : BotCommand
         }
 
         await dbContext.Links.AddAsync(linkInfo);
+        await dbContext.SaveChangesAsync();
         return UserResponseFactory.Success($"Ссылка <b>{linkInfo.Name}</b> успешно добавлена в базу данных.");
     }
 }
