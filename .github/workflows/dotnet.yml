@@ -1,0 +1,33 @@
+name: Production pipeline
+
+# Controls when the workflow will run
+on: [workflow_dispatch]
+        
+jobs:
+  deploy:
+    # My self-hosted action runner
+    runs-on: self-hosted
+
+    strategy:
+      matrix:
+        dotnet: ["6.0.x"]
+
+    steps:
+      # Stopping and deleting docker container
+      - name: Stop StudyOrganizer and delete its container
+        run: docker stop SORG || true && docker rm SORG || true
+    
+      # Checking out repository
+      - uses: actions/checkout@v3
+      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+
+      # Build StudyOrganizerTest docker image
+      - name: Build docker image
+        run: docker build -t study_organizer -f Dockerfile .
+        
+      # Running docker container with specified settings
+      - name: Run application
+        run: docker run -v /var/deploy/StudyOrganizer:/app/out --restart unless-stopped --name SORG -itd --network=host -e BOT_TOKEN=${{ secrets.BOT_TOKEN }} -e YANDEX_CLOUD_TOKEN=${{ secrets.YANDEX_CLOUD_TOKEN }} -e OPEN_API_TOKEN=${{ secrets.OPEN_API_TOKEN }} study_organizer out/settings.json out/command_settings/ out/trigger_settings/ out/db/bot_data.db
