@@ -114,7 +114,8 @@ public class BotService : IService
         User telegramUser,
         CancellationToken cts)
     {
-        if (telegramUser.IsBot || telegramChat.Id != _generalSettings.MainChatId)
+        // Id = 777000
+        if (telegramUser.IsBot || telegramUser.Id == 777000 || telegramChat.Id != _generalSettings.MainChatId)
         {
             return;
         }

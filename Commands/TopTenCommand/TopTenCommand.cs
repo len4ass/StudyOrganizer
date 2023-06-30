@@ -55,7 +55,10 @@ public sealed class TopTenCommand : BotCommand
             return UserResponseFactory.NotEnoughArguments(Name);
         }
 
-        var parsedParameterType = Enum.TryParse<TopParameterType>(arguments[0], out var topParameterType);
+        var parsedParameterType = Enum.TryParse<TopParameterType>(
+            arguments[0],
+            true,
+            out var topParameterType);
         if (!parsedParameterType)
         {
             return UserResponseFactory.FailedParsing(Name);
