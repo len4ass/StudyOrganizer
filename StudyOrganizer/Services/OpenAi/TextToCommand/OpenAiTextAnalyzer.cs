@@ -38,7 +38,6 @@ public class OpenAiTextAnalyzer : IOpenAiTextAnalyzer
         sb.AppendLine("Если ни одна команда не подходит, то ответь пустой строкой.");
         sb.AppendLine("Не переводи названия дедлайнов, ссылок на английский язык.");
         sb.AppendLine("Форматирование даты: dd.MM.yyyy HH:mm:ss");
-        sb.AppendLine($"Учитывай, что текущий год {DateTime.UtcNow.Year}, текущий месяц {DateTime.UtcNow.Month}.");
 
         _systemMessage = sb.ToString();
     }
@@ -51,7 +50,8 @@ public class OpenAiTextAnalyzer : IOpenAiTextAnalyzer
             CreateSystemMessage();
         }
 
-        var request = $"{_systemMessage} \nСообщение: '{text}'";
+        var request = $"{_systemMessage} \nСообщение: '{text}'\n" +
+                      $"Учитывай, что текущий год {DateTime.UtcNow.Year}, текущий месяц {DateTime.UtcNow.Month}, текущий день {DateTime.UtcNow.Day}.";
         var result = await _api.ChatEndpoint.GetCompletionAsync(
             new ChatRequest(
                 new[]
