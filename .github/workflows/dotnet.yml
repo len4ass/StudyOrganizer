@@ -15,7 +15,7 @@ jobs:
     steps:
       # Stopping and deleting docker container
       - name: Stop StudyOrganizer and delete its container
-        run: docker stop SORG || true && docker rm SORG || true
+        run: sudo docker stop SORG || true && sudo docker rm SORG || true
     
       # Checking out repository
       - uses: actions/checkout@v3
@@ -26,8 +26,8 @@ jobs:
 
       # Build StudyOrganizerTest docker image
       - name: Build docker image
-        run: docker build -t study_organizer -f Dockerfile .
+        run: sudo docker build -t study_organizer -f Dockerfile .
         
       # Running docker container with specified settings
       - name: Run application
-        run: docker run -v /var/deploy/StudyOrganizer:/app/out --restart unless-stopped --name SORG -itd --network=host -e BOT_TOKEN=${{ secrets.BOT_TOKEN }} -e YANDEX_CLOUD_TOKEN=${{ secrets.YANDEX_CLOUD_TOKEN }} -e OPEN_API_TOKEN=${{ secrets.OPEN_API_TOKEN }} study_organizer out/settings.json out/command_settings/ out/trigger_settings/ out/db/bot_data.db
+        run: sudo docker run -v ~/deploy/StudyOrganizer:/app/out --restart unless-stopped --name SORG -itd --network=host -e BOT_TOKEN=${{ secrets.BOT_TOKEN }} -e YANDEX_CLOUD_TOKEN=${{ secrets.YANDEX_CLOUD_TOKEN }} -e OPEN_API_TOKEN=${{ secrets.OPEN_API_TOKEN }} study_organizer out/settings.json out/command_settings/ out/trigger_settings/ out/db/bot_data.db
